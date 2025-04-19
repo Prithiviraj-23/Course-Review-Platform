@@ -4,6 +4,9 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
+const courseRoutes = require("./routes/courseRoutes");
+const path = require("path");
+const fs = require("fs");
 const app = express();
 
 // Load environment variables
@@ -18,6 +21,13 @@ app.use(cors());
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/courses", courseRoutes);
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+const uploadDir = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+  console.log("Uploads folder created");
+}
 
 // Start the server
 const PORT = process.env.PORT || 5000;

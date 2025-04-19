@@ -1,3 +1,4 @@
+// backend/models/Course.js
 const mongoose = require("mongoose");
 
 const courseSchema = new mongoose.Schema(
@@ -5,12 +6,17 @@ const courseSchema = new mongoose.Schema(
     title: { type: String, required: true },
     description: String,
     department: String,
-    difficulty: { type: String, enum: ["easy", "medium", "hard"] },
-    prerequisites: [String],
+    difficulty: String,
     instructor: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    content: String,
+    averageRating: { type: Number, default: 0 }, // Store average rating here
+    prerequisites: [String],
+    tags: [String],
+    videoUrl: String,
+    imageUrl: String,
   },
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Course", courseSchema);
+const Course = mongoose.model("Course", courseSchema);
+
+module.exports = Course;

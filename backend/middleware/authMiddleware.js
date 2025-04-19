@@ -13,11 +13,16 @@ const auth = async (req, res, next) => {
   try {
     // Decode token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log("Decoded token:", decoded); // Debugging line
     const user = await User.findById(decoded.id);
     req.user = user; // Attach the user to the request object
+    console.log("User from token:", user); // Debugging line
+    if (!user) {
+      return res.status(401).json({ message: "User not found" });
+    }
     next();
   } catch (error) {
-    res.status(401).json({ message: "Token is not valid" });
+    res.status(401).json({ message: "Token is not valid", data: decoded });
   }
 };
 
