@@ -12,6 +12,7 @@ export const signupUser = createAsyncThunk(
       );
       return res.data; // Assuming response contains user and token
     } catch (err) {
+      console.error("Signup error:", err); // Log for debugging
       return rejectWithValue(err.response?.data?.message || "Signup failed");
     }
   }
@@ -68,7 +69,7 @@ const authSlice = createSlice({
       })
       .addCase(signupUser.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload;
+        state.error = action.payload || "Signup failed"; // Save error message to state
       })
       // Handle loginUser actions
       .addCase(loginUser.pending, (state) => {

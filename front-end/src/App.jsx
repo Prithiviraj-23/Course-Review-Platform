@@ -1,9 +1,10 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import Signup from "./Pages/Signup"; // Correct if Signup is inside 'Pages' folder
 import Login from "./Pages/Login";
 import Dashboard from "./Pages/Dashboard";
 import { useSelector } from "react-redux";
 import CourseDetailPage from "./components/CourseDetailPage ";
+import InstructorDashboard from "./Pages/InstructorDashboard";
 
 function App() {
   const { token } = useSelector((state) => state.auth);
@@ -20,7 +21,7 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route
         path="/dashboard"
-        element={token ? <Dashboard /> : <Navigate to="/login" />}
+        element={token ? <InstructorDashboard /> : <Navigate to="/login" />}
       />
       <Route
         path="/course/:courseId"

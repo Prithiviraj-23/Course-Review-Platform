@@ -23,7 +23,7 @@ const Signup = () => {
     role: "student", // default
   });
   const dispatch = useDispatch();
-  const toast = useToast();
+  const toast = useToast(); // Initialize toast
   const navigate = useNavigate();
   const { loading, error } = useSelector((state) => state.auth); // Get loading and error from Redux
 
@@ -31,17 +31,23 @@ const Signup = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async () => {
-    try {
-      const res = await dispatch(signupUser(form)); // Dispatch the signup action
-      if (res.type === "auth/signupUser/fulfilled") {
-        toast({ title: "Signup successful!", status: "success" });
-        navigate("/login");
-      }
-    } catch (err) {
+    const resultAction = await dispatch(signupUser(form));
+
+    if (signupUser.fulfilled.match(resultAction)) {
       toast({
-        title: "Error",
-        description: error || "Signup failed",
+        title: "Signup successful!",
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+      navigate("/login");
+    } else if (signupUser.rejected.match(resultAction)) {
+      toast({
+        title: "Signup failed",
+        description: resultAction.payload || "Something went wrong",
         status: "error",
+        duration: 5000,
+        isClosable: true,
       });
     }
   };
@@ -62,11 +68,22 @@ const Signup = () => {
         <VStack spacing="4">
           <FormControl>
             <FormLabel>Name</FormLabel>
-            <Input name="name" value={form.name} onChange={handleChange} />
+            <Input
+              name="name"
+              value={form.name}
+              onChange={handleChange}
+              required
+            />
           </FormControl>
           <FormControl>
             <FormLabel>Email</FormLabel>
-            <Input name="email" value={form.email} onChange={handleChange} />
+            <Input
+              type="email"
+              name="email"
+              value={form.email}
+              onChange={handleChange}
+              required
+            />
           </FormControl>
           <FormControl>
             <FormLabel>Password</FormLabel>
@@ -75,6 +92,7 @@ const Signup = () => {
               name="password"
               value={form.password}
               onChange={handleChange}
+              required
             />
           </FormControl>
           <FormControl>
@@ -88,7 +106,7 @@ const Signup = () => {
             colorScheme="blue"
             width="full"
             onClick={handleSubmit}
-            isLoading={loading}
+            isLoading={loading} // Show loading spinner while request is in progress
           >
             Sign Up
           </Button>
