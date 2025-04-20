@@ -1,10 +1,15 @@
-import { useState } from "react";
-
-import "./App.css";
+import { Route, Routes } from "react-router-dom";
+import Signup from "./Pages/Signup"; // Correct if Signup is inside 'Pages' folder
+import Login from "./Pages/Login";
 
 function App() {
-
-  return <div className="bg-slate-500">hello.......</div>;
+  console.log("App is rendering");
+  return (
+    <Routes>
+      <Route path="/signup" element={<Signup />} />
+      <Route path="/login" element={<Login />} />
+    </Routes>
+  );
 }
 
 export default App;
