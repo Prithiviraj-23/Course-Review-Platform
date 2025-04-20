@@ -26,6 +26,18 @@ const ReviewModal = ({ isOpen, onClose, courseId, refreshCourseData }) => {
 
   const handleSubmit = async () => {
     try {
+      // Check if the comment is empty
+      if (!comment.trim()) {
+        toast({
+          title: "Comment Required",
+          description: "Please provide a comment for your review.",
+          status: "warning",
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
+      }
+
       // Make the API call to submit the review
       const res = await axios.post(
         `${import.meta.env.VITE_API_HOST}/api/reviews/submit`,
@@ -37,24 +49,22 @@ const ReviewModal = ({ isOpen, onClose, courseId, refreshCourseData }) => {
         }
       );
 
-      // Show success toast
-      toast({
-        title: "Review submitted!",
-        description: res.data.message,
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-
-      // Clear the form and close the modal
-      setRating(3);
-      setComment("");
-      onClose();
-
-      // Call refreshCourseData to refresh the course data after review submission
-      refreshCourseData();
+      // Only show success toast if the API response is successful
+      if (res.data?.message) {
+        toast({
+          title: "Review submitted!",
+          description: res.data.message,
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
+        setRating(3);
+        setComment("");
+        onClose();
+        refreshCourseData(); // Refresh the course data
+      }
     } catch (err) {
-      // Show error toast
+      // Show error toast if the API call fails
       toast({
         title: "Error",
         description: err.response?.data?.message || "Something went wrong",

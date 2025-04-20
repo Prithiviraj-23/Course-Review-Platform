@@ -1,18 +1,40 @@
-import { Box, Text, Button } from "@chakra-ui/react";
+import { Box, Text, Button, useToast } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
 
-const CourseCard = ({ course, onAddReview }) => {
+const CourseCard = ({ course, onAddReview, isInstructorView, onDelete }) => {
   const navigate = useNavigate();
+  const toast = useToast(); // ✅ Toast hook
 
-  // Navigate to course detail page when card is clicked
   const handleCardClick = () => {
     navigate(`/course/${course._id}`);
   };
 
-  // Prevent card click when Review button is clicked
   const handleReviewClick = (e) => {
-    e.stopPropagation(); // Prevent the card click event from firing
-    onAddReview(course._id); // Call the existing review function
+    e.stopPropagation();
+    onAddReview(course._id);
+  };
+
+  const handleDeleteClick = async (e) => {
+    e.stopPropagation();
+
+    try {
+      await onDelete(course._id); // Assuming onDelete returns a promise
+      toast({
+        title: "Course deleted",
+        description: `"${course.title}" has been removed.`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      toast({
+        title: "Error deleting course",
+        description: error.message || "Something went wrong",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
 
   return (
@@ -23,9 +45,8 @@ const CourseCard = ({ course, onAddReview }) => {
       bg="white"
       boxShadow="md"
       _hover={{ cursor: "pointer", boxShadow: "lg" }}
-      onClick={handleCardClick} // Make the card clickable
+      onClick={handleCardClick}
     >
-      {/* Image or fallback */}
       {course.imageUrl ? (
         <Box mb="3">
           <img
@@ -102,18 +123,30 @@ const CourseCard = ({ course, onAddReview }) => {
         </Box>
       )}
 
-      {/* Review button with note */}
-      <Text fontSize="xs" color="gray.500" mb="1">
-        Click below to add or update your review
-      </Text>
-      <Button
-        mt="1"
-        colorScheme="teal"
-        width="full"
-        onClick={handleReviewClick} // Trigger review function, prevent card click
-      >
-        Review
-      </Button>
+      {isInstructorView ? (
+        <Button
+          mt="2"
+          colorScheme="red"
+          width="full"
+          onClick={handleDeleteClick}
+        >
+          Delete Course
+        </Button>
+      ) : (
+        <>
+          <Text fontSize="xs" color="gray.500" mb="1">
+            Click below to add or update your review
+          </Text>
+          <Button
+            mt="1"
+            colorScheme="teal"
+            width="full"
+            onClick={handleReviewClick}
+          >
+            Review
+          </Button>
+        </>
+      )}
     </Box>
   );
 };

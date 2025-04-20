@@ -89,7 +89,7 @@ const deleteCourse = async (req, res) => {
 const getCoursesByInstructor = async (req, res) => {
   try {
     // Fetch courses where the instructor ID matches the logged-in user's ID
-    console.log(req.user.id);
+    console.log("Instrutor", req.user.id);
     const courses = await Course.find({ instructor: req.user.id }).populate(
       "instructor",
       "name email"

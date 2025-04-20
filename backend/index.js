@@ -22,12 +22,12 @@ app.use(express.json());
 app.use(cors());
 app.use(
   cors({
-    origin: "*",
-    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+    origin: "http://localhost:5173",
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   })
 );
-
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/courses", courseRoutes);

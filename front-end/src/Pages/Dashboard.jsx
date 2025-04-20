@@ -1,12 +1,24 @@
-import { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Box, SimpleGrid, Heading, Skeleton } from "@chakra-ui/react";
-import { fetchCourses } from "../features/course/courseSlice";
+import {
+  Box,
+  SimpleGrid,
+  Heading,
+  Skeleton,
+  Button,
+  Flex,
+  useDisclosure,
+} from "@chakra-ui/react";
+import {
+  fetchCourses,
+  fetchInstructorCourses,
+  deleteCourse,
+} from "../features/course/courseSlice";
 import Navbar from "../components/Navbar";
 import CourseCard from "../components/CourseCard";
 import { debounce } from "lodash";
-import { useDisclosure } from "@chakra-ui/react";
 import ReviewModal from "../components/ReviewModal";
+import PostModal from "../components/PostModal";
 
 const Dashboard = () => {
   const dispatch = useDispatch();
@@ -16,12 +28,21 @@ const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredCourses, setFilteredCourses] = useState([]);
 
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen, onOpen, onClose } = useDisclosure(); // for review modal
+  const {
+    isOpen: isCreateOpen,
+    onOpen: onCreateOpen,
+    onClose: onCreateClose,
+  } = useDisclosure(); // for create course modal
   const [selectedCourseId, setSelectedCourseId] = useState(null);
 
   useEffect(() => {
-    dispatch(fetchCourses());
-  }, [dispatch]);
+    if (user?.role === "instructor") {
+      dispatch(fetchInstructorCourses(user._id)); // Fetch instructor's courses
+    } else {
+      dispatch(fetchCourses()); // Fetch all courses for students
+    }
+  }, [dispatch, user]);
 
   useEffect(() => {
     setFilteredCourses(courses);
@@ -48,9 +69,18 @@ const Dashboard = () => {
     onOpen();
   };
 
+  const handleDeleteCourse = (courseId) => {
+    // Prompt for confirmation before deleting the course
+
+    dispatch(deleteCourse(courseId)); // Dispatch the delete action
+  };
+
   const refreshCourseData = () => {
-    // Fetch updated course data after submitting review
-    dispatch(fetchCourses());
+    if (user?.role === "instructor") {
+      dispatch(fetchInstructorCourses(user._id)); // Refresh instructor's courses
+    } else {
+      dispatch(fetchCourses()); // Refresh all courses for students
+    }
   };
 
   return (
@@ -58,9 +88,17 @@ const Dashboard = () => {
       <Navbar searchQuery={searchQuery} onSearchChange={handleSearchChange} />
 
       <Box p="6">
-        <Heading mb="6">Welcome, {user?.name}</Heading>
+        <Flex justify="space-between" align="center" mb="6">
+          <Heading>Welcome, {user?.name}</Heading>
+          {user?.role === "instructor" && (
+            <Button colorScheme="teal" onClick={onCreateOpen}>
+              Add New Course
+            </Button>
+          )}
+        </Flex>
+
         <Heading size="lg" mb="4">
-          Courses
+          {user?.role === "instructor" ? "Your Courses" : "All Courses"}
         </Heading>
 
         {loading ? (
@@ -75,17 +113,25 @@ const Dashboard = () => {
               <CourseCard
                 key={course._id}
                 course={course}
-                onAddReview={handleAddReview}
+                onAddReview={user?.role === "student" ? handleAddReview : null}
+                isInstructorView={user?.role === "instructor"}
+                onDelete={handleDeleteCourse} // Pass delete function to CourseCard
               />
             ))}
           </SimpleGrid>
         )}
       </Box>
+
+      {/* Modals */}
       <ReviewModal
         isOpen={isOpen}
-        onClose={onClose} // Use onClose from useDisclosure
+        onClose={onClose}
         courseId={selectedCourseId}
-        refreshCourseData={refreshCourseData} // Pass refresh function
+      />
+      <PostModal
+        isOpen={isCreateOpen}
+        onClose={onCreateClose}
+        refreshCourseData={refreshCourseData} // Pass refresh function to PostModal
       />
     </Box>
   );
