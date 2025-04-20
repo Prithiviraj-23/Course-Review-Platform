@@ -10,7 +10,8 @@ import {
   Flex,
 } from "@chakra-ui/react";
 import { useState } from "react";
-import axios from "axios";
+import { useDispatch, useSelector } from "react-redux"; // Use dispatch and selector
+import { loginUser } from "../features/auth/authSlice"; // Import loginUser action
 import { useNavigate } from "react-router-dom";
 
 const Login = () => {
@@ -18,25 +19,25 @@ const Login = () => {
     email: "",
     password: "",
   });
+  const dispatch = useDispatch();
   const toast = useToast();
   const navigate = useNavigate();
+  const { loading, error } = useSelector((state) => state.auth); // Get loading and error from Redux
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async () => {
     try {
-      const res = await axios.post(
-        `${import.meta.env.VITE_API_HOST}/api/auth/login`,
-        form
-      );
-      toast({ title: "Login successful!", status: "success" });
-      // Store JWT token or any session information here if needed
-      navigate("/dashboard"); // Navigate to a protected page after login
+      const res = await dispatch(loginUser(form)); // Dispatch the login action
+      if (res.type === "auth/loginUser/fulfilled") {
+        toast({ title: "Login successful!", status: "success" });
+        navigate("/dashboard"); // Navigate to a protected page after login
+      }
     } catch (err) {
       toast({
         title: "Error",
-        description: err.response?.data?.message || "Login failed",
+        description: error || "Login failed",
         status: "error",
       });
     }
@@ -69,7 +70,12 @@ const Login = () => {
               onChange={handleChange}
             />
           </FormControl>
-          <Button colorScheme="blue" width="full" onClick={handleSubmit}>
+          <Button
+            colorScheme="blue"
+            width="full"
+            onClick={handleSubmit}
+            isLoading={loading}
+          >
             Login
           </Button>
         </VStack>

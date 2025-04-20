@@ -11,7 +11,8 @@ import {
   Flex,
 } from "@chakra-ui/react";
 import { useState } from "react";
-import axios from "axios";
+import { useDispatch, useSelector } from "react-redux"; // Use dispatch and selector
+import { signupUser } from "../features/auth/authSlice"; // Import signupUser action
 import { useNavigate } from "react-router-dom";
 
 const Signup = () => {
@@ -21,24 +22,25 @@ const Signup = () => {
     password: "",
     role: "student", // default
   });
+  const dispatch = useDispatch();
   const toast = useToast();
   const navigate = useNavigate();
+  const { loading, error } = useSelector((state) => state.auth); // Get loading and error from Redux
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async () => {
     try {
-      const res = await axios.post(
-        `${import.meta.env.VITE_API_HOST}/api/auth/signup`,
-        form
-      );
-      toast({ title: "Signup successful!", status: "success" });
-      navigate("/login");
+      const res = await dispatch(signupUser(form)); // Dispatch the signup action
+      if (res.type === "auth/signupUser/fulfilled") {
+        toast({ title: "Signup successful!", status: "success" });
+        navigate("/login");
+      }
     } catch (err) {
       toast({
         title: "Error",
-        description: err.response?.data?.message || "Signup failed",
+        description: error || "Signup failed",
         status: "error",
       });
     }
@@ -82,7 +84,12 @@ const Signup = () => {
               <option value="instructor">Instructor</option>
             </Select>
           </FormControl>
-          <Button colorScheme="blue" width="full" onClick={handleSubmit}>
+          <Button
+            colorScheme="blue"
+            width="full"
+            onClick={handleSubmit}
+            isLoading={loading}
+          >
             Sign Up
           </Button>
         </VStack>
