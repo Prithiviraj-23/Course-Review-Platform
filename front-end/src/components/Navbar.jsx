@@ -14,6 +14,8 @@ import {
   PopoverHeader,
   PopoverBody,
   Text,
+  VStack,
+  Divider,
 } from "@chakra-ui/react";
 import { SearchIcon } from "@chakra-ui/icons";
 import { useDispatch } from "react-redux";
@@ -33,6 +35,7 @@ const Navbar = ({ searchQuery, onSearchChange }) => {
   return (
     <Box bg="blue.500" p="4" color="white">
       <Flex justify="space-between" align="center">
+        {/* Logo */}
         <Text fontSize="2xl" fontWeight="bold" color="black">
           AppName
         </Text>
@@ -61,31 +64,55 @@ const Navbar = ({ searchQuery, onSearchChange }) => {
         </InputGroup>
 
         {/* Profile Icon with Popover */}
-        <Popover placement="bottom-end" closeOnBlur={true}>
+        <Popover placement="bottom-end" closeOnBlur>
           <PopoverTrigger>
             <IconButton
               icon={
                 <Avatar name={user?.name} src={user?.profileImage} size="sm" />
               }
               aria-label="User Profile"
-              variant="link"
-              cursor="pointer"
+              variant="ghost"
+              size="sm"
               _hover={{ bg: "blue.600" }}
             />
           </PopoverTrigger>
-          <PopoverContent maxWidth="fit-content" padding="4">
+          <PopoverContent w="200px" borderRadius="md" boxShadow="md">
             <PopoverArrow />
-            <PopoverCloseButton />
-            <PopoverHeader p="2" fontSize="sm">
-              {user?.name} {/* Display user name */}
+            <PopoverCloseButton color="gray.600" />
+            <PopoverHeader
+              pt={4}
+              pb={2}
+              px={4}
+              fontSize="md"
+              fontWeight="bold"
+              border="none"
+              color="gray.700"
+            >
+              {user?.name}
             </PopoverHeader>
-            <PopoverBody p="2">
-              <Text color="black" mb="2" onClick={() => navigate("/profile")}>
-                Profile
-              </Text>
-              <Text color="black" onClick={handleLogout}>
-                Logout
-              </Text>
+            <Divider my={2} borderColor="gray.300" />
+
+            <PopoverBody px={4} pb={4}>
+              <VStack align="start" spacing={2}>
+                <Text
+                  color="gray.800"
+                  fontWeight="medium"
+                  cursor="pointer"
+                  _hover={{ color: "blue.500" }}
+                  onClick={() => navigate("/profile")}
+                >
+                  Profile
+                </Text>
+                <Text
+                  color="gray.800"
+                  fontWeight="medium"
+                  cursor="pointer"
+                  _hover={{ color: "red.500" }}
+                  onClick={handleLogout}
+                >
+                  Logout
+                </Text>
+              </VStack>
             </PopoverBody>
           </PopoverContent>
         </Popover>
