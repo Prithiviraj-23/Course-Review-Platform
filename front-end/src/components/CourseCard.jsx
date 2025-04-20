@@ -1,8 +1,30 @@
 import { Box, Text, Button } from "@chakra-ui/react";
+import { useNavigate } from "react-router-dom";
 
 const CourseCard = ({ course, onAddReview }) => {
+  const navigate = useNavigate();
+
+  // Navigate to course detail page when card is clicked
+  const handleCardClick = () => {
+    navigate(`/course/${course._id}`);
+  };
+
+  // Prevent card click when Review button is clicked
+  const handleReviewClick = (e) => {
+    e.stopPropagation(); // Prevent the card click event from firing
+    onAddReview(course._id); // Call the existing review function
+  };
+
   return (
-    <Box p="5" borderWidth="1px" borderRadius="lg" bg="white" boxShadow="md">
+    <Box
+      p="5"
+      borderWidth="1px"
+      borderRadius="lg"
+      bg="white"
+      boxShadow="md"
+      _hover={{ cursor: "pointer", boxShadow: "lg" }}
+      onClick={handleCardClick} // Make the card clickable
+    >
       {/* Image or fallback */}
       {course.imageUrl ? (
         <Box mb="3">
@@ -88,7 +110,7 @@ const CourseCard = ({ course, onAddReview }) => {
         mt="1"
         colorScheme="teal"
         width="full"
-        onClick={() => onAddReview(course._id)}
+        onClick={handleReviewClick} // Trigger review function, prevent card click
       >
         Review
       </Button>

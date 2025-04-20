@@ -3,6 +3,7 @@ import Signup from "./Pages/Signup"; // Correct if Signup is inside 'Pages' fold
 import Login from "./Pages/Login";
 import Dashboard from "./Pages/Dashboard";
 import { useSelector } from "react-redux";
+import CourseDetailPage from "./components/CourseDetailPage ";
 
 function App() {
   const { token } = useSelector((state) => state.auth);
@@ -20,6 +21,10 @@ function App() {
       <Route
         path="/dashboard"
         element={token ? <Dashboard /> : <Navigate to="/login" />}
+      />
+      <Route
+        path="/course/:courseId"
+        element={token ? <CourseDetailPage /> : <Navigate to="/login" />}
       />
     </Routes>
   );

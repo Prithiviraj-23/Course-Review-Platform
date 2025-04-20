@@ -142,10 +142,10 @@ const getReviewsForCourse = async (req, res) => {
       return res.status(404).json({ message: "Course not found" });
     }
 
-    const reviews = await Review.find({ course: req.params.id }).populate(
-      "student",
-      "username"
-    );
+    // Modify the populate to include additional fields from the student model
+    const reviews = await Review.find({ course: req.params.id })
+      .populate("student", "username name email profileImage") // Add more fields here if needed
+      .exec();
 
     res.json(reviews);
   } catch (err) {
