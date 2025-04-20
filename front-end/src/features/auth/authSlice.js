@@ -35,8 +35,8 @@ export const loginUser = createAsyncThunk(
 
 // Initial state
 const initialState = {
-  user: null,
-  token: null,
+  //   user: JSON.parse(localStorage.getItem("user") || "null"),
+  token: localStorage.getItem("token") || null,
   loading: false,
   error: null,
 };
@@ -50,6 +50,8 @@ const authSlice = createSlice({
     logout: (state) => {
       state.user = null;
       state.token = null;
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
     },
   },
   extraReducers: (builder) => {
@@ -77,6 +79,8 @@ const authSlice = createSlice({
         state.loading = false;
         state.user = action.payload.user;
         state.token = action.payload.token;
+        // localStorage.setItem("user", JSON.stringify(action.payload.user));
+        localStorage.setItem("token", action.payload.token);
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;
