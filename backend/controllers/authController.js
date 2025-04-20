@@ -29,7 +29,11 @@ const signup = async (req, res) => {
 
     // Generate JWT token
     const token = generateToken(newUser._id, newUser.role);
-    res.status(201).json({ token });
+
+    // Exclude the password from the response
+    const { password: _, ...userData } = newUser.toObject();
+
+    res.status(201).json({ token, user: userData });
   } catch (error) {
     res.status(500).json({ message: "Error in signup" });
   }
@@ -54,7 +58,11 @@ const login = async (req, res) => {
 
     // Generate JWT token
     const token = generateToken(user._id, user.role);
-    res.json({ token });
+
+    // Exclude the password from the response
+    const { password: _, ...userData } = user.toObject();
+
+    res.json({ token, user: userData });
   } catch (error) {
     res.status(500).json({ message: "Error in login" });
   }
