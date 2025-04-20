@@ -65,20 +65,86 @@ const Dashboard = () => {
             ))}
           </SimpleGrid>
         ) : (
-          <SimpleGrid columns={3} spacing={4}>
+          <SimpleGrid columns={[1, 2, 3]} spacing={6}>
             {filteredCourses.map((course) => (
               <Box
-                key={course.id}
+                key={course._id}
                 p="5"
                 borderWidth="1px"
                 borderRadius="lg"
                 bg="white"
+                boxShadow="md"
               >
-                <Text fontSize="xl" fontWeight="bold">
+                {/* Image */}
+                {course.imageUrl && (
+                  <Box mb="3">
+                    <img
+                      src={course.imageUrl}
+                      alt={course.title}
+                      style={{
+                        width: "100%",
+                        height: "160px",
+                        objectFit: "cover",
+                        borderRadius: "8px",
+                      }}
+                    />
+                  </Box>
+                )}
+
+                {/* Title */}
+                <Text fontSize="xl" fontWeight="bold" mb="1">
                   {course.title}
                 </Text>
-                <Text mt="2">{course.description}</Text>
-                <Button mt="4" colorScheme="blue" width="full">
+
+                {/* Instructor */}
+                <Text fontSize="sm" color="gray.600" mb="1">
+                  Instructor:{" "}
+                  <strong>{course.instructor?.name || "N/A"}</strong>
+                </Text>
+
+                {/* Rating */}
+                <Text fontSize="sm" color="gray.600" mb="1">
+                  Rating:{" "}
+                  {course.averageRating > 0 ? (
+                    <>
+                      {"⭐".repeat(Math.round(course.averageRating))}
+                      <span> ({course.averageRating.toFixed(1)})</span>
+                    </>
+                  ) : (
+                    "No ratings yet"
+                  )}
+                </Text>
+
+                {/* Department & Difficulty */}
+                <Text fontSize="sm" color="gray.600">
+                  Dept: <strong>{course.department?.trim()}</strong>
+                </Text>
+                <Text fontSize="sm" color="gray.600" mb="2">
+                  Difficulty: <strong>{course.difficulty?.trim()}</strong>
+                </Text>
+
+                {/* Tags */}
+                {course.tags?.length > 0 && (
+                  <Box mt="2" mb="3" display="flex" flexWrap="wrap" gap="2">
+                    {course.tags.map((tag, idx) => (
+                      <Box
+                        key={idx}
+                        px="2"
+                        py="1"
+                        fontSize="xs"
+                        bg="blue.50"
+                        borderRadius="md"
+                        color="blue.700"
+                        whiteSpace="nowrap"
+                      >
+                        {tag.trim()}
+                      </Box>
+                    ))}
+                  </Box>
+                )}
+
+                {/* Enroll Button */}
+                <Button mt="2" colorScheme="blue" width="full">
                   Enroll
                 </Button>
               </Box>
