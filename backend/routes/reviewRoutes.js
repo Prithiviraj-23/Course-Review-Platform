@@ -6,6 +6,7 @@ const {
   getReviewsForCourse,
   getCourseRating,
   checkUserReview,
+  updateReview,
 } = require("../controllers/reviewController");
 
 const { auth, authorizeRoles } = require("../middleware/authMiddleware");
@@ -15,6 +16,7 @@ const router = express.Router();
 router.get("/course/:courseId/check-review", auth, checkUserReview);
 
 router.post("/submit", auth, authorizeRoles("student"), submitReview);
+// router.put("/update", auth, updateReview);
 router.get("/course/:id", getReviewsForCourse);
 
 router.get("/course/:id/rating", getCourseRating);

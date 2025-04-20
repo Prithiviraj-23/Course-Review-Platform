@@ -20,12 +20,19 @@ connectDB();
 // Middleware
 app.use(express.json());
 app.use(cors());
+app.use(
+  cors({
+    origin: "*",
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+    credentials: true,
+  })
+);
 
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/courses", courseRoutes);
 app.use("/api/reviews", reviewRoutes);
-app.use("/api/enrollments",enrollmentRoutes);
+app.use("/api/enrollments", enrollmentRoutes);
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 const uploadDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadDir)) {
