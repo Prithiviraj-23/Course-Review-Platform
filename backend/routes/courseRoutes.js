@@ -6,6 +6,7 @@ const {
   getCourseById,
   deleteCourse,
   getCoursesByInstructor,
+  getCoursesNotByCurrentUser,
 } = require("../controllers/courseController");
 const upload = require("../middleware/upload");
 const { authorizeRoles, auth } = require("../middleware/authMiddleware");
@@ -28,6 +29,9 @@ router.get(
   authorizeRoles("instructor"), // Ensure the user is an instructor
   getCoursesByInstructor // Calls the controller function to get instructor's courses
 );
+
+router.get("/other-courses", auth, getCoursesNotByCurrentUser);
+
 // Route to get a specific course by ID - accessible by everyone
 router.get("/:id", getCourseById);
 
@@ -38,5 +42,7 @@ router.delete(
   authorizeRoles("admin", "instructor"),
   deleteCourse
 );
+
+// Add to your course routes file
 
 module.exports = router;

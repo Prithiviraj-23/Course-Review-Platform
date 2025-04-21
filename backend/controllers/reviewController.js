@@ -28,12 +28,15 @@ const submitReview = async (req, res) => {
       student: req.user._id,
     });
 
+    let reviewDoc; // Declare a variable outside the if-else to store the review
+
     if (existingReview) {
       // Update review
       existingReview.rating = rating;
       existingReview.comment = comment;
       existingReview.sentiment = sentimentScore;
       await existingReview.save();
+      reviewDoc = existingReview;
     } else {
       // New review
       const newReview = new Review({
@@ -44,6 +47,7 @@ const submitReview = async (req, res) => {
         sentiment: sentimentScore,
       });
       await newReview.save();
+      reviewDoc = newReview;
     }
 
     // ✅ Re-fetch the course to get the latest review data
@@ -61,7 +65,7 @@ const submitReview = async (req, res) => {
       message: existingReview
         ? "Review updated successfully"
         : "Review submitted successfully",
-      review: existingReview || newReview,
+      review: reviewDoc,
       sentimentScore,
     });
   } catch (err) {
@@ -72,67 +76,6 @@ const submitReview = async (req, res) => {
     });
   }
 };
-
-// const updateReview = async (req, res) => {
-//   const { reviewId, rating, comment } = req.body;
-
-//   if (!reviewId || !rating || !comment) {
-//     return res.status(400).json({ message: "Please provide all fields" });
-//   }
-
-//   try {
-//     // Find the review to update
-//     const review = await Review.findById(reviewId);
-//     if (!review) {
-//       return res.status(404).json({ message: "Review not found" });
-//     }
-
-//     // Ensure the review belongs to the current user
-//     if (review.student.toString() !== req.user._id.toString()) {
-//       return res
-//         .status(403)
-//         .json({ message: "You can only update your own review" });
-//     }
-
-//     // Update the review fields
-//     review.rating = rating;
-//     review.comment = comment;
-
-//     // Analyze sentiment and extract the numeric score
-//     const sentimentResult = sentiment.analyze(comment);
-//     const sentimentScore = sentimentResult.score; // Integer score (e.g., -3, 0, 4)
-//     review.sentiment = sentimentScore; // Update the sentiment score
-
-//     await review.save(); // Save the updated review
-
-//     // Find the course associated with the review
-//     const courseToReview = await Course.findById(review.course);
-//     if (!courseToReview) {
-//       return res.status(404).json({ message: "Course not found" });
-//     }
-
-//     // Recalculate the average rating and average sentiment
-//     const { averageRating, averageSentiment } =
-//       await courseToReview.calculateAverages();
-
-//     // Update the course with the new averages
-//     courseToReview.averageRating = averageRating;
-//     courseToReview.averageSentiment = averageSentiment;
-
-//     await courseToReview.save(); // Save the updated course
-
-//     res.status(200).json({
-//       message: "Review updated successfully",
-//       review,
-//       sentimentScore,
-//     });
-//   } catch (err) {
-//     res.status(500).json({
-//       message: "Error updating review",
-//       error: err.message,
-//     });
-//   }
-// };
 
 // Fetch reviews for a specific course
 const getReviewsForCourse = async (req, res) => {
@@ -216,10 +159,45 @@ const checkUserReview = async (req, res) => {
   }
 };
 
+// Get all reviews posted by the current user
+const getUserReviews = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // Find all reviews posted by this user
+    const reviews = await Review.find({ student: userId })
+      .populate({
+        path: "course",
+        select: "title department imageUrl instructor",
+        populate: {
+          path: "instructor",
+          select: "name",
+        },
+      })
+      .sort({ createdAt: -1 }); // Most recent reviews first
+
+    if (reviews.length === 0) {
+      return res.status(200).json({
+        message: "You haven't posted any reviews yet",
+        reviews: [],
+      });
+    }
+
+    res.json(reviews);
+  } catch (err) {
+    console.error("Error fetching user reviews:", err);
+    res.status(500).json({
+      message: "Error fetching your reviews",
+      error: err.message,
+    });
+  }
+};
+
 module.exports = {
   submitReview,
   getReviewsForCourse,
   getCourseRating,
   checkUserReview,
+  getUserReviews,
   // updateReview,
 };

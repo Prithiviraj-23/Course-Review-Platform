@@ -106,6 +106,27 @@ const getCoursesByInstructor = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+// GET COURSES NOT CREATED BY CURRENT USER
+const getCoursesNotByCurrentUser = async (req, res) => {
+  try {
+    // Find courses where the instructor is NOT the current user
+    const courses = await Course.find({ 
+      instructor: { $ne: req.user.id } 
+    }).populate("instructor", "name email");
+    
+    if (courses.length === 0) {
+      return res.status(200).json({ 
+        message: "No courses found created by other users",
+        courses: []
+      });
+    }
+
+    res.json(courses);
+  } catch (err) {
+    console.error("Error fetching other users' courses:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
 
 // ✅ EXPORTING ALL CONTROLLERS
 module.exports = {
@@ -114,4 +135,5 @@ module.exports = {
   getCourseById,
   deleteCourse,
   getCoursesByInstructor,
+  getCoursesNotByCurrentUser  // Add this new controller to the exports
 };
