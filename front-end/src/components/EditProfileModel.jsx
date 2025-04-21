@@ -21,7 +21,16 @@ import {
   WrapItem,
   HStack,
   Box,
+  Divider,
+  Text,
+  InputGroup,
+  InputRightElement,
+  Tooltip,
+  VStack,
+  useColorModeValue,
+  Heading,
 } from "@chakra-ui/react";
+import { FaPlus } from "react-icons/fa";
 import axios from "axios";
 import { useSelector } from "react-redux";
 
@@ -41,6 +50,10 @@ const EditProfileModal = ({ isOpen, onClose, userData, onSave }) => {
   const [newInterest, setNewInterest] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Colors
+  const sectionBg = useColorModeValue("gray.50", "gray.700");
+  const tagBg = useColorModeValue("blue.50", "blue.800");
 
   useEffect(() => {
     if (userData) {
@@ -68,6 +81,9 @@ const EditProfileModal = ({ isOpen, onClose, userData, onSave }) => {
     } else {
       setFormData({ ...formData, [name]: value });
     }
+
+    // Clear errors when user types
+    if (error) setError("");
   };
 
   const handleAddInterest = () => {
@@ -83,6 +99,13 @@ const EditProfileModal = ({ isOpen, onClose, userData, onSave }) => {
         },
       });
       setNewInterest("");
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleAddInterest();
     }
   };
 
@@ -102,7 +125,9 @@ const EditProfileModal = ({ isOpen, onClose, userData, onSave }) => {
 
     try {
       const response = await axios.put(
-        "http://localhost:5000/api/auth/update",
+        `${
+          import.meta.env.VITE_API_HOST || "http://localhost:5000"
+        }/api/auth/update`,
         formData,
         {
           headers: {
@@ -147,91 +172,170 @@ const EditProfileModal = ({ isOpen, onClose, userData, onSave }) => {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="md">
-      <ModalOverlay />
-      <ModalContent>
-        <ModalHeader>Edit Profile</ModalHeader>
-        <ModalCloseButton />
-        <ModalBody>
-          <FormControl mb={4} isInvalid={!!error}>
-            <FormLabel>Name</FormLabel>
-            <Input
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              placeholder="Enter your name"
-            />
-          </FormControl>
+      <ModalOverlay bg="blackAlpha.300" backdropFilter="blur(5px)" />
+      <ModalContent borderRadius="lg" boxShadow="xl">
+        <ModalHeader
+          py={4}
+          px={6}
+          bg={useColorModeValue("blue.50", "blue.900")}
+          borderTopRadius="lg"
+        >
+          <Heading size="md">Edit Profile</Heading>
+        </ModalHeader>
+        <ModalCloseButton mt={2} mr={2} />
 
-          <FormControl mb={4}>
-            <FormLabel>Email</FormLabel>
-            <Input
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="Enter your email"
-            />
-          </FormControl>
+        <Divider />
 
-          <FormControl mb={4}>
-            <FormLabel>Department</FormLabel>
-            <Select
-              name="department"
-              value={formData.preferences.department}
-              onChange={handleChange}
-              placeholder="Select department"
-            >
-              <option value="Computer Science">Computer Science</option>
-              <option value="Information Technology">
-                Information Technology
-              </option>
-              <option value="Electronics">Electronics</option>
-              <option value="Mechanical">Mechanical</option>
-              <option value="Civil">Civil</option>
-              <option value="Chemical">Chemical</option>
-              <option value="Other">Other</option>
-            </Select>
-          </FormControl>
+        <ModalBody p={6}>
+          <VStack spacing={5} align="stretch">
+            {/* Personal Information Section */}
+            <Box>
+              <Text fontWeight="medium" fontSize="sm" color="gray.500" mb={3}>
+                PERSONAL INFORMATION
+              </Text>
 
-          <FormControl mb={4}>
-            <FormLabel>Interests</FormLabel>
-            <HStack mb={2}>
-              <Input
-                value={newInterest}
-                onChange={(e) => setNewInterest(e.target.value)}
-                placeholder="Add an interest"
-                onKeyPress={(e) => e.key === "Enter" && e.preventDefault()}
-              />
-              <Button onClick={handleAddInterest} size="sm">
-                Add
-              </Button>
-            </HStack>
+              <FormControl mb={4} isInvalid={!!error}>
+                <FormLabel fontSize="sm" fontWeight="medium">
+                  Name
+                </FormLabel>
+                <Input
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  placeholder="Enter your name"
+                  focusBorderColor="blue.400"
+                />
+              </FormControl>
 
-            <Box mt={2}>
-              <Wrap spacing={2}>
-                {formData.preferences.interests.map((interest, index) => (
-                  <WrapItem key={index}>
-                    <Tag colorScheme="blue" borderRadius="full">
-                      <TagLabel>{interest}</TagLabel>
-                      <TagCloseButton
-                        onClick={() => handleRemoveInterest(interest)}
-                      />
-                    </Tag>
-                  </WrapItem>
-                ))}
-              </Wrap>
+              <FormControl mb={4}>
+                <FormLabel fontSize="sm" fontWeight="medium">
+                  Email
+                </FormLabel>
+                <Input
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="Enter your email"
+                  focusBorderColor="blue.400"
+                />
+              </FormControl>
             </Box>
-          </FormControl>
+
+            <Divider />
+
+            {/* Preferences Section */}
+            <Box>
+              <Text fontWeight="medium" fontSize="sm" color="gray.500" mb={3}>
+                PREFERENCES
+              </Text>
+
+              <FormControl mb={4}>
+                <FormLabel fontSize="sm" fontWeight="medium">
+                  Department
+                </FormLabel>
+                <Select
+                  name="department"
+                  value={formData.preferences.department}
+                  onChange={handleChange}
+                  placeholder="Select department"
+                  focusBorderColor="blue.400"
+                >
+                  <option value="Computer Science">Computer Science</option>
+                  <option value="Information Technology">
+                    Information Technology
+                  </option>
+                  <option value="Electronics">Electronics</option>
+                  <option value="Mechanical">Mechanical</option>
+                  <option value="Civil">Civil</option>
+                  <option value="Chemical">Chemical</option>
+                  <option value="Other">Other</option>
+                </Select>
+              </FormControl>
+
+              <FormControl mb={4}>
+                <FormLabel fontSize="sm" fontWeight="medium">
+                  Interests
+                </FormLabel>
+                <InputGroup size="md">
+                  <Input
+                    value={newInterest}
+                    onChange={(e) => setNewInterest(e.target.value)}
+                    placeholder="Add an interest"
+                    onKeyPress={handleKeyPress}
+                    pr="4.5rem"
+                    focusBorderColor="blue.400"
+                  />
+                  <InputRightElement width="4.5rem">
+                    <Tooltip label="Add interest" placement="top">
+                      <Button
+                        h="1.75rem"
+                        size="sm"
+                        onClick={handleAddInterest}
+                        colorScheme="blue"
+                        variant="ghost"
+                        rightIcon={<FaPlus />}
+                      >
+                        Add
+                      </Button>
+                    </Tooltip>
+                  </InputRightElement>
+                </InputGroup>
+
+                <Text fontSize="xs" color="gray.500" mt={1} ml={1}>
+                  Press Enter to add or click Add
+                </Text>
+
+                {formData.preferences.interests.length > 0 && (
+                  <Box mt={3} p={3} borderRadius="md" bg={sectionBg}>
+                    <Wrap spacing={2}>
+                      {formData.preferences.interests.map((interest, index) => (
+                        <WrapItem key={index}>
+                          <Tag
+                            size="md"
+                            borderRadius="full"
+                            variant="subtle"
+                            colorScheme="blue"
+                            bgColor={tagBg}
+                          >
+                            <TagLabel>{interest}</TagLabel>
+                            <TagCloseButton
+                              onClick={() => handleRemoveInterest(interest)}
+                            />
+                          </Tag>
+                        </WrapItem>
+                      ))}
+                    </Wrap>
+                  </Box>
+                )}
+              </FormControl>
+            </Box>
+          </VStack>
 
           {error && (
-            <FormControl isInvalid={true}>
-              <FormErrorMessage>{error}</FormErrorMessage>
-            </FormControl>
+            <Box
+              mt={4}
+              p={3}
+              borderRadius="md"
+              bg="red.50"
+              borderColor="red.300"
+              borderWidth="1px"
+            >
+              <Text color="red.500" fontSize="sm">
+                {error}
+              </Text>
+            </Box>
           )}
         </ModalBody>
 
-        <ModalFooter>
-          <Button variant="ghost" mr={3} onClick={onClose}>
+        <Divider />
+
+        <ModalFooter
+          bg={useColorModeValue("gray.50", "gray.800")}
+          p={4}
+          borderBottomRadius="lg"
+        >
+          <Button variant="outline" mr={3} onClick={onClose} size="md">
             Cancel
           </Button>
           <Button
@@ -239,6 +343,8 @@ const EditProfileModal = ({ isOpen, onClose, userData, onSave }) => {
             onClick={handleSubmit}
             isLoading={isLoading}
             loadingText="Saving"
+            size="md"
+            boxShadow="sm"
           >
             Save Changes
           </Button>

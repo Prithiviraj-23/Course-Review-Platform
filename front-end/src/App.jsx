@@ -4,6 +4,8 @@ import Login from "./Pages/Login";
 import Dashboard from "./Pages/Dashboard";
 import { useSelector } from "react-redux";
 import CourseDetailPage from "./components/CourseDetailPage ";
+import EditCoursePage from "./components/EditCoursePage";
+
 // import InstructorDashboard from "./Pages/InstructorDashboard";
 import Profile from "./Pages/Profile";
 function App() {
@@ -31,6 +33,8 @@ function App() {
         path="/profile"
         element={token ? <Profile /> : <Navigate to="/login" />}
       />
+      // Add this import
+      <Route path="/edit-course/:courseId" element={<EditCoursePage />} />
     </Routes>
   );
 }

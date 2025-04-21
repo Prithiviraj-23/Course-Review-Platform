@@ -13,6 +13,12 @@ const CourseCard = ({ course, onAddReview, isInstructorView, isOwnCourse }) => {
     onAddReview(course._id);
   };
 
+  // New handler for the manage course button
+  const handleManageCourse = (e) => {
+    e.stopPropagation();
+    navigate(`/edit-course/${course._id}`);
+  };
+
   return (
     <Box
       p="5"
@@ -122,7 +128,7 @@ const CourseCard = ({ course, onAddReview, isInstructorView, isOwnCourse }) => {
             isOwnCourse ? "purple" : isInstructorView ? "blue" : "teal"
           }
           width="full"
-          onClick={handleReviewClick}
+          onClick={isOwnCourse ? handleManageCourse : handleReviewClick}
         >
           {isOwnCourse ? "Manage Course" : "Review Course"}
         </Button>

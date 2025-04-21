@@ -12,13 +12,15 @@ import {
   Spinner,
   Flex,
   IconButton,
+  Tooltip,
+  Badge,
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { useParams, useNavigate } from "react-router-dom"; // Import useNavigate
+import { useParams, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { HiArrowLeft } from "react-icons/hi"; // For the back button
-import ReviewModal from "./ReviewModal"; // Assuming the ReviewModal component exists
+import { HiArrowLeft, HiPencil } from "react-icons/hi";
+import ReviewModal from "./ReviewModal";
 
 const CourseDetailPage = () => {
   const { courseId } = useParams();
@@ -30,7 +32,27 @@ const CourseDetailPage = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const navigate = useNavigate(); // useNavigate hook to navigate back
+  const navigate = useNavigate();
+
+  // Check if the current user is the instructor of this course
+  const isInstructor = course?.instructor?._id === userId;
+
+  // Function to refresh course data after edits
+  const refreshCourseData = async () => {
+    try {
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_HOST}/api/courses/${courseId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      setCourse(res.data);
+    } catch (err) {
+      console.error("Failed to refresh course", err);
+    }
+  };
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -93,15 +115,37 @@ const CourseDetailPage = () => {
 
   return (
     <Box p="6" maxW="4xl" mx="auto" bg="white" boxShadow="lg" borderRadius="lg">
-      {/* Back Button */}
-      <IconButton
-        icon={<HiArrowLeft />}
-        onClick={() => navigate(-1)}
-        aria-label="Back"
-        variant="outline"
-        colorScheme="teal"
-        mb="4"
-      />
+      {/* Top navigation row with back button and edit button for instructors */}
+      <Flex justifyContent="space-between" alignItems="center" mb="4">
+        <IconButton
+          icon={<HiArrowLeft />}
+          onClick={() => navigate(-1)}
+          aria-label="Back"
+          variant="outline"
+          colorScheme="teal"
+        />
+
+        {/* Only show edit button if user is the instructor */}
+        {isInstructor && (
+          <Tooltip label="Edit this course" placement="top">
+            <Button
+              leftIcon={<HiPencil />}
+              colorScheme="purple"
+              onClick={() => navigate(`/edit-course/${courseId}`)}
+              size="md"
+            >
+              Edit Course
+            </Button>
+          </Tooltip>
+        )}
+      </Flex>
+
+      {/* Instructor Badge - Only shown if current user is the instructor */}
+      {isInstructor && (
+        <Badge colorScheme="purple" mb="4" fontSize="sm" px="2" py="1">
+          You are the instructor of this course
+        </Badge>
+      )}
 
       {/* Video section */}
       {course.videoUrl?.trim() ? (
@@ -197,16 +241,19 @@ const CourseDetailPage = () => {
         </Text>
       </HStack>
 
-      <Button colorScheme="teal" onClick={onOpen} width="full" mb="6">
-        Add / Update Review
-      </Button>
+      {/* Only show Add/Update Review button for non-instructors */}
+      {!isInstructor && (
+        <Button colorScheme="teal" onClick={onOpen} width="full" mb="6">
+          Add / Update Review
+        </Button>
+      )}
 
       {/* Review Modal */}
       <ReviewModal
         isOpen={isOpen}
         onClose={onClose}
         courseId={course._id}
-        userId={userId}
+        refreshCourseData={refreshCourseData}
       />
 
       <Divider mb="4" />
@@ -225,6 +272,12 @@ const CourseDetailPage = () => {
                 <Text fontWeight="bold">
                   {review.student?.name || "Anonymous"}
                 </Text>
+                {review.student?._id === userId && (
+                  <Badge colorScheme="green">Your Review</Badge>
+                )}
+                {review.student?._id === course.instructor?._id && (
+                  <Badge colorScheme="purple">Instructor</Badge>
+                )}
               </HStack>
               <Text fontSize="sm" color="gray.600" mb="1">
                 ⭐ {review.rating}
