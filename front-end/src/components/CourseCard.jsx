@@ -1,9 +1,8 @@
-import { Box, Text, Button, useToast } from "@chakra-ui/react";
+import { Box, Text, Button, Badge, Flex, Spacer } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
 
-const CourseCard = ({ course, onAddReview, isInstructorView, onDelete }) => {
+const CourseCard = ({ course, onAddReview, isInstructorView, isOwnCourse }) => {
   const navigate = useNavigate();
-  const toast = useToast(); // ✅ Toast hook
 
   const handleCardClick = () => {
     navigate(`/course/${course._id}`);
@@ -12,29 +11,6 @@ const CourseCard = ({ course, onAddReview, isInstructorView, onDelete }) => {
   const handleReviewClick = (e) => {
     e.stopPropagation();
     onAddReview(course._id);
-  };
-
-  const handleDeleteClick = async (e) => {
-    e.stopPropagation();
-
-    try {
-      await onDelete(course._id); // Assuming onDelete returns a promise
-      toast({
-        title: "Course deleted",
-        description: `"${course.title}" has been removed.`,
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-    } catch (error) {
-      toast({
-        title: "Error deleting course",
-        description: error.message || "Something went wrong",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
   };
 
   return (
@@ -47,6 +23,14 @@ const CourseCard = ({ course, onAddReview, isInstructorView, onDelete }) => {
       _hover={{ cursor: "pointer", boxShadow: "lg" }}
       onClick={handleCardClick}
     >
+      <Flex mb="2">
+        {isOwnCourse && <Badge colorScheme="purple">Your Course</Badge>}
+        {isInstructorView && !isOwnCourse && (
+          <Badge colorScheme="blue">Instructor Review Available</Badge>
+        )}
+        <Spacer />
+      </Flex>
+
       {course.imageUrl ? (
         <Box mb="3">
           <img
@@ -123,30 +107,26 @@ const CourseCard = ({ course, onAddReview, isInstructorView, onDelete }) => {
         </Box>
       )}
 
-      {isInstructorView ? (
+      {/* Review button section */}
+      <>
+        <Text fontSize="xs" color="gray.500" mb="1">
+          {isOwnCourse
+            ? "You can manage and review your own course"
+            : isInstructorView
+            ? "As an instructor, you can review this course"
+            : "Click below to add or update your review"}
+        </Text>
         <Button
-          mt="2"
-          colorScheme="red"
+          mt="1"
+          colorScheme={
+            isOwnCourse ? "purple" : isInstructorView ? "blue" : "teal"
+          }
           width="full"
-          onClick={handleDeleteClick}
+          onClick={handleReviewClick}
         >
-          Delete Course
+          {isOwnCourse ? "Manage Course" : "Review Course"}
         </Button>
-      ) : (
-        <>
-          <Text fontSize="xs" color="gray.500" mb="1">
-            Click below to add or update your review
-          </Text>
-          <Button
-            mt="1"
-            colorScheme="teal"
-            width="full"
-            onClick={handleReviewClick}
-          >
-            Review
-          </Button>
-        </>
-      )}
+      </>
     </Box>
   );
 };

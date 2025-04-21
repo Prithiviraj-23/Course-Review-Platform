@@ -5,7 +5,7 @@ import Dashboard from "./Pages/Dashboard";
 import { useSelector } from "react-redux";
 import CourseDetailPage from "./components/CourseDetailPage ";
 // import InstructorDashboard from "./Pages/InstructorDashboard";
-
+import Profile from "./Pages/Profile";
 function App() {
   const { token } = useSelector((state) => state.auth);
   console.log("App is rendering");
@@ -26,6 +26,10 @@ function App() {
       <Route
         path="/course/:courseId"
         element={token ? <CourseDetailPage /> : <Navigate to="/login" />}
+      />
+      <Route
+        path="/profile"
+        element={token ? <Profile /> : <Navigate to="/login" />}
       />
     </Routes>
   );

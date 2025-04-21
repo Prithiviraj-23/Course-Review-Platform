@@ -26,7 +26,7 @@ export const fetchInstructorCourses = createAsyncThunk(
       const token = localStorage.getItem("token"); // Get token from localStorage
 
       const res = await axios.get(
-        `${import.meta.env.VITE_API_HOST}/api/courses/instructor-courses`,
+        `${import.meta.env.VITE_API_HOST}/api/courses/other-courses`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

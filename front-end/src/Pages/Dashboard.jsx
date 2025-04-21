@@ -12,7 +12,6 @@ import {
 import {
   fetchCourses,
   fetchInstructorCourses,
-  deleteCourse,
 } from "../features/course/courseSlice";
 import Navbar from "../components/Navbar";
 import CourseCard from "../components/CourseCard";
@@ -69,12 +68,6 @@ const Dashboard = () => {
     onOpen();
   };
 
-  const handleDeleteCourse = (courseId) => {
-    // Prompt for confirmation before deleting the course
-
-    dispatch(deleteCourse(courseId)); // Dispatch the delete action
-  };
-
   const refreshCourseData = () => {
     if (user?.role === "instructor") {
       dispatch(fetchInstructorCourses(user._id)); // Refresh instructor's courses
@@ -110,12 +103,12 @@ const Dashboard = () => {
         ) : (
           <SimpleGrid columns={[1, 2, 3]} spacing={6}>
             {filteredCourses.map((course) => (
+              // Example usage in parent component
               <CourseCard
-                key={course._id}
                 course={course}
-                onAddReview={user?.role === "student" ? handleAddReview : null}
-                isInstructorView={user?.role === "instructor"}
-                onDelete={handleDeleteCourse} // Pass delete function to CourseCard
+                onAddReview={handleAddReview}
+                isInstructorView={user.role === "instructor"}
+                isOwnCourse={user.id === course.instructor?._id}
               />
             ))}
           </SimpleGrid>
