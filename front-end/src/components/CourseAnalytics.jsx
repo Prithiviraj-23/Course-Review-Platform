@@ -50,7 +50,7 @@ const CourseAnalytics = ({ analytics, reviews }) => {
     const negative = reviews.filter((review) => review.sentiment < 0).length;
     const neutral = reviews.filter((review) => review.sentiment === 0).length;
     const total = reviews.length;
-
+    console.log(positive);
     return {
       positive,
       negative,
