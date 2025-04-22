@@ -1,6 +1,5 @@
 const Course = require("../models/Course");
 
-// CREATE COURSE
 const createCourse = async (req, res) => {
   try {
     const {
@@ -21,7 +20,7 @@ const createCourse = async (req, res) => {
       videoUrl,
       prerequisites: prerequisites?.split(",") || [],
       tags: tags?.split(",") || [],
-      instructor: req.user?.id, // Must match from auth middleware
+      instructor: req.user?.id,
       imageUrl: req.file
         ? `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`
         : undefined,
@@ -34,7 +33,6 @@ const createCourse = async (req, res) => {
   }
 };
 
-// GET ALL COURSES
 const getAllCourses = async (req, res) => {
   try {
     const courses = await Course.find().populate("instructor", "name email");
@@ -44,7 +42,6 @@ const getAllCourses = async (req, res) => {
   }
 };
 
-// GET COURSE BY ID
 const getCourseById = async (req, res) => {
   try {
     console.log(req.params.id);
@@ -59,7 +56,6 @@ const getCourseById = async (req, res) => {
   }
 };
 
-// DELETE COURSE
 const deleteCourse = async (req, res) => {
   try {
     const course = await Course.findById(req.params.id);
@@ -82,13 +78,8 @@ const deleteCourse = async (req, res) => {
   }
 };
 
-// controllers/courseController.js
-
-// controllers/courseController.js
-// controllers/courseController.js
 const getCoursesByInstructor = async (req, res) => {
   try {
-    // Fetch courses where the instructor ID matches the logged-in user's ID
     console.log("Instrutor", req.user.id);
     const courses = await Course.find({ instructor: req.user.id }).populate(
       "instructor",
@@ -97,7 +88,7 @@ const getCoursesByInstructor = async (req, res) => {
 
     if (courses.length === 0) {
       return res
-        .status(404)
+        .status(200)
         .json({ message: "No courses found for this instructor" });
     }
 
@@ -106,18 +97,16 @@ const getCoursesByInstructor = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-// GET COURSES NOT CREATED BY CURRENT USER
 const getCoursesNotByCurrentUser = async (req, res) => {
   try {
-    // Find courses where the instructor is NOT the current user
-    const courses = await Course.find({ 
-      instructor: { $ne: req.user.id } 
+    const courses = await Course.find({
+      instructor: { $ne: req.user.id },
     }).populate("instructor", "name email");
-    
+
     if (courses.length === 0) {
-      return res.status(200).json({ 
+      return res.status(200).json({
         message: "No courses found created by other users",
-        courses: []
+        courses: [],
       });
     }
 
@@ -128,12 +117,74 @@ const getCoursesNotByCurrentUser = async (req, res) => {
   }
 };
 
-// ✅ EXPORTING ALL CONTROLLERS
+const updateCourse = async (req, res) => {
+  try {
+    const courseId = req.params.id;
+    const {
+      title,
+      description,
+      department,
+      difficulty,
+      tags,
+      videoUrl,
+      prerequisites,
+    } = req.body;
+
+    const course = await Course.findById(courseId);
+
+    if (!course) {
+      return res.status(404).json({ message: "Course not found" });
+    }
+
+    if (
+      req.user.role !== "admin" &&
+      course.instructor.toString() !== req.user.id
+    ) {
+      return res
+        .status(403)
+        .json({ message: "You are not authorized to update this course" });
+    }
+
+    if (title) course.title = title;
+    if (description) course.description = description;
+    if (department) course.department = department;
+    if (difficulty) course.difficulty = difficulty;
+    if (videoUrl) course.videoUrl = videoUrl;
+
+    if (prerequisites) {
+      course.prerequisites = prerequisites.split
+        ? prerequisites.split(",")
+        : prerequisites;
+    }
+
+    if (tags) {
+      course.tags = tags.split ? tags.split(",") : tags;
+    }
+
+    if (req.file) {
+      course.imageUrl = `${req.protocol}://${req.get("host")}/uploads/${
+        req.file.filename
+      }`;
+    }
+
+    const updatedCourse = await course.save();
+
+    res.json({
+      message: "Course updated successfully",
+      course: updatedCourse,
+    });
+  } catch (err) {
+    console.error("Error updating course:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
 module.exports = {
   createCourse,
   getAllCourses,
   getCourseById,
+  updateCourse,
   deleteCourse,
   getCoursesByInstructor,
-  getCoursesNotByCurrentUser  // Add this new controller to the exports
+  getCoursesNotByCurrentUser,
 };

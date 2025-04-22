@@ -1,4 +1,3 @@
-// models/Enrollment.js
 const mongoose = require("mongoose");
 
 const enrollmentSchema = new mongoose.Schema(
@@ -10,12 +9,12 @@ const enrollmentSchema = new mongoose.Schema(
       required: true,
     },
     enrolledAt: { type: Date, default: Date.now },
-    progress: { type: Number, default: 0 }, // Optional, for tracking
-    completed: { type: Boolean, default: false }, // Optional
+    progress: { type: Number, default: 0 }, 
+    completed: { type: Boolean, default: false }, 
   },
   { timestamps: true }
 );
 
-enrollmentSchema.index({ user: 1, course: 1 }, { unique: true }); // Prevent duplicates
+enrollmentSchema.index({ user: 1, course: 1 }, { unique: true }); 
 
 module.exports = mongoose.model("Enrollment", enrollmentSchema);

@@ -1,9 +1,6 @@
-// backend/controllers/reviewController.js
 const Review = require("../models/Review");
 const Course = require("../models/Course");
 
-// Function to submit a review
-// Function to submit a review
 const Sentiment = require("sentiment");
 const sentiment = new Sentiment();
 
@@ -28,17 +25,15 @@ const submitReview = async (req, res) => {
       student: req.user._id,
     });
 
-    let reviewDoc; // Declare a variable outside the if-else to store the review
+    let reviewDoc;
 
     if (existingReview) {
-      // Update review
       existingReview.rating = rating;
       existingReview.comment = comment;
       existingReview.sentiment = sentimentScore;
       await existingReview.save();
       reviewDoc = existingReview;
     } else {
-      // New review
       const newReview = new Review({
         course,
         student: req.user._id,
@@ -50,10 +45,8 @@ const submitReview = async (req, res) => {
       reviewDoc = newReview;
     }
 
-    // ✅ Re-fetch the course to get the latest review data
     courseToReview = await Course.findById(course);
 
-    // ✅ Recalculate the average rating and sentiment
     const { averageRating, averageSentiment } =
       await courseToReview.calculateAverages();
     courseToReview.averageRating = averageRating;
@@ -77,7 +70,6 @@ const submitReview = async (req, res) => {
   }
 };
 
-// Fetch reviews for a specific course
 const getReviewsForCourse = async (req, res) => {
   try {
     const course = await Course.findById(req.params.id);
@@ -85,9 +77,8 @@ const getReviewsForCourse = async (req, res) => {
       return res.status(404).json({ message: "Course not found" });
     }
 
-    // Modify the populate to include additional fields from the student model
     const reviews = await Review.find({ course: req.params.id })
-      .populate("student", "username name email profileImage") // Add more fields here if needed
+      .populate("student", "username name email profileImage")
       .exec();
 
     res.json(reviews);
@@ -98,7 +89,6 @@ const getReviewsForCourse = async (req, res) => {
   }
 };
 
-// Get average rating for a course
 const getCourseRating = async (req, res) => {
   try {
     const course = await Course.findById(req.params.id);
@@ -106,10 +96,8 @@ const getCourseRating = async (req, res) => {
       return res.status(404).json({ message: "Course not found" });
     }
 
-    // Fetch all reviews for the course
     const reviews = await Review.find({ course: req.params.id });
 
-    // Calculate average rating
     const averageRating =
       reviews.length > 0
         ? reviews.reduce((acc, review) => acc + review.rating, 0) /
@@ -124,34 +112,28 @@ const getCourseRating = async (req, res) => {
   }
 };
 
-// Check if a user has already reviewed a course
 const checkUserReview = async (req, res) => {
   try {
-    const { courseId } = req.params; // Extract courseId from URL params
-    const userId = req.user._id; // Use the logged-in user's ID
+    const { courseId } = req.params;
+    const userId = req.user._id;
 
-    // Debugging line to check user ID
     console.log("Checking review for user ID:", userId);
 
-    // Check if the user has already reviewed the course
     const existingReview = await Review.findOne({
       course: courseId,
-      student: userId, // Match the logged-in user's ID with the review's student field
+      student: userId,
     });
 
     if (existingReview) {
-      // If a review exists, return the review details and set hasReviewed to true
       return res.json({
         hasReviewed: true,
-        review: existingReview, // Optional: You can return review details if you want
+        review: existingReview,
       });
     }
 
-    // If no review is found, return that the user hasn't reviewed the course
     res.json({ hasReviewed: false });
   } catch (err) {
-    // Handle any errors and return an error message
-    console.error("Error checking review:", err); // Optional: Log the error for debugging
+    console.error("Error checking review:", err);
     res.status(500).json({
       message: "Error checking review",
       error: err.message,
@@ -159,12 +141,10 @@ const checkUserReview = async (req, res) => {
   }
 };
 
-// Get all reviews posted by the current user
 const getUserReviews = async (req, res) => {
   try {
     const userId = req.user._id;
 
-    // Find all reviews posted by this user
     const reviews = await Review.find({ student: userId })
       .populate({
         path: "course",
@@ -174,7 +154,7 @@ const getUserReviews = async (req, res) => {
           select: "name",
         },
       })
-      .sort({ createdAt: -1 }); // Most recent reviews first
+      .sort({ createdAt: -1 });
 
     if (reviews.length === 0) {
       return res.status(200).json({
@@ -199,5 +179,5 @@ module.exports = {
   getCourseRating,
   checkUserReview,
   getUserReviews,
-  // updateReview,
+
 };

@@ -1,4 +1,3 @@
-// backend/models/Review.js
 const mongoose = require("mongoose");
 
 const reviewSchema = new mongoose.Schema(
@@ -7,7 +6,7 @@ const reviewSchema = new mongoose.Schema(
     student: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     rating: { type: Number, required: true },
     comment: String,
-    sentiment: { type: Number }, // Now stores numeric sentiment score
+    sentiment: { type: Number }, 
   },
   { timestamps: true }
 );

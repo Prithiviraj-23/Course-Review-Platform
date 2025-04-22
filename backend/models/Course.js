@@ -1,6 +1,5 @@
-// backend/models/Course.js
 const mongoose = require("mongoose");
-const Review = require("./Review"); // ✅ Add this line
+const Review = require("./Review"); 
 
 const courseSchema = new mongoose.Schema(
   {
@@ -19,7 +18,6 @@ const courseSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Calculate both avg rating and avg sentiment together
 courseSchema.methods.calculateAverages = async function () {
   try {
     const reviews = await Review.find({ course: this._id });

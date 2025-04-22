@@ -13,12 +13,12 @@ function App() {
   console.log("App is rendering");
   return (
     <Routes>
-      {/* <Route
+      <Route
         path="/"
         element={
           token ? <Navigate to="/dashboard" /> : <Navigate to="/login" />
         }
-      /> */}
+      />
       <Route path="/signup" element={<Signup />} />
       <Route path="/login" element={<Login />} />
       <Route
