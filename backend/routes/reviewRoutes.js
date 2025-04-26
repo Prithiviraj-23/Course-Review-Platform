@@ -7,6 +7,7 @@ const {
   checkUserReview,
   updateReview,
   getUserReviews,
+  getCourseReviewStats,
 } = require("../controllers/reviewController");
 
 const { auth, authorizeRoles } = require("../middleware/authMiddleware");
@@ -21,5 +22,7 @@ router.get("/my-reviews", auth, getUserReviews);
 router.get("/course/:id", getReviewsForCourse);
 
 router.get("/course/:id/rating", getCourseRating);
+// Add to reviewRoutes.js
+router.get("/course/:id/stats", getCourseReviewStats);
 
 module.exports = router;

@@ -1,0 +1,28 @@
+version: "2"
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./backend:/app
+    networks:
+      - mynetwork
+
+  frontend:
+    build: ./front-end
+    ports:
+      - "3000:80" # Frontend will be accessible on port 3000 on the host
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./frontend:/app
+    networks:
+      - mynetwork
+
+networks:
+  mynetwork:
+    driver: bridge

@@ -173,11 +173,82 @@ const getUserReviews = async (req, res) => {
   }
 };
 
+// Course review statistics controller
+const getCourseReviewStats = async (req, res) => {
+  try {
+    const courseId = req.params.id;
+
+    // Verify the course exists
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({ message: "Course not found" });
+    }
+
+    // Get all reviews for this course
+    const reviews = await Review.find({ course: courseId });
+
+    // Calculate basic statistics
+    const totalReviews = reviews.length;
+    const averageRating =
+      totalReviews > 0
+        ? reviews.reduce((sum, review) => sum + review.rating, 0) / totalReviews
+        : 0;
+
+    // Count positive, negative and neutral reviews based on sentiment
+    const positiveReviews = reviews.filter(
+      (review) => review.sentiment > 0
+    ).length;
+    const negativeReviews = reviews.filter(
+      (review) => review.sentiment < 0
+    ).length;
+    const neutralReviews = reviews.filter(
+      (review) => review.sentiment === 0
+    ).length;
+
+    // Count reviews by rating (0-5)
+    const ratingDistribution = {
+      0: 0,
+      1: 0,
+      2: 0,
+      3: 0,
+      4: 0,
+      5: 0,
+    };
+
+    reviews.forEach((review) => {
+      const rating = Math.floor(review.rating);
+      if (rating >= 0 && rating <= 5) {
+        ratingDistribution[rating]++;
+      }
+    });
+
+    // Return the aggregated statistics
+    res.json({
+      courseId,
+      totalReviews,
+      averageRating: parseFloat(averageRating.toFixed(1)),
+      sentiment: {
+        positive: positiveReviews,
+        negative: negativeReviews,
+        neutral: neutralReviews,
+      },
+      ratingDistribution,
+    });
+  } catch (err) {
+    console.error("Error getting course review statistics:", err);
+    res.status(500).json({
+      message: "Error fetching course review statistics",
+      error: err.message,
+    });
+  }
+};
+
+// Add to module.exports
 module.exports = {
   submitReview,
   getReviewsForCourse,
   getCourseRating,
   checkUserReview,
   getUserReviews,
-
+  getCourseReviewStats, // Add the new controller
 };

@@ -1,371 +1,301 @@
 import React from "react";
 import {
   Box,
-  Heading,
+  Grid,
+  GridItem,
   Text,
-  Flex,
-  SimpleGrid,
-  Stat,
-  StatLabel,
-  StatNumber,
-  Progress,
-  Divider,
-  useColorModeValue,
+  Heading,
   Badge,
-  HStack,
-  Card,
-  CardHeader,
-  CardBody,
+  Flex,
   Icon,
+  Divider,
+  List,
+  ListItem,
+  ListIcon,
+  VStack,
+  HStack,
+  useColorModeValue,
 } from "@chakra-ui/react";
 import {
-  FaThumbsUp,
-  FaThumbsDown,
-  FaStar,
-  FaSmile,
-  FaMeh,
-  FaFrown,
-  FaChartPie,
+  FaUserShield,
+  FaCalendarAlt,
+  FaCheckCircle,
+  FaTimesCircle,
+  FaGraduationCap,
+  FaChalkboardTeacher,
+  FaBookReader,
+  FaIdCard,
+  FaEnvelope,
+  FaClock,
+  FaUserCog,
 } from "react-icons/fa";
 
-const CourseAnalytics = ({ analytics, reviews }) => {
-  const bgColor = useColorModeValue("white", "gray.700");
+const AccountDetails = ({ userData }) => {
+  // Color scheme
+  const sectionBg = useColorModeValue("gray.50", "gray.700");
+  const textColor = useColorModeValue("gray.800", "white");
+  const subtleTextColor = useColorModeValue("gray.600", "gray.300");
   const borderColor = useColorModeValue("gray.200", "gray.600");
-  const sectionBg = useColorModeValue("gray.50", "gray.800");
-
-  // Calculate sentiment-based metrics if reviews are provided
-  const sentimentMetrics = React.useMemo(() => {
-    if (!reviews || reviews.length === 0) {
-      return {
-        positive: 0,
-        negative: 0,
-        neutral: 0,
-        positivePercentage: 0,
-        negativePercentage: 0,
-        neutralPercentage: 0,
-      };
+  const badgeColor = useColorModeValue("blue.50", "blue.900");
+  
+  // Role-specific settings
+  const getRoleIcon = (role) => {
+    switch (role) {
+      case "instructor":
+        return FaChalkboardTeacher;
+      case "student":
+        return FaGraduationCap;
+      default:
+        return FaUserCog;
     }
+  };
+  
+  const getRoleBadgeColor = (role) => {
+    switch (role) {
+      case "instructor":
+        return "purple";
+      case "student":
+        return "blue";
+      default:
+        return "gray";
+    }
+  };
 
-    const positive = reviews.filter((review) => review.sentiment > 0).length;
-    const negative = reviews.filter((review) => review.sentiment < 0).length;
-    const neutral = reviews.filter((review) => review.sentiment === 0).length;
-    const total = reviews.length;
+  // Format dates
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
-    return {
-      positive,
-      negative,
-      neutral,
-      positivePercentage: ((positive / total) * 100).toFixed(1),
-      negativePercentage: ((negative / total) * 100).toFixed(1),
-      neutralPercentage: ((neutral / total) * 100).toFixed(1),
-    };
-  }, [reviews]);
+  // Account status (assuming active if we have data)
+  const isAccountActive = !!userData;
+  
+  // Calculate account age
+  const getAccountAge = () => {
+    if (!userData?.createdAt) return "N/A";
+    
+    const createdDate = new Date(userData.createdAt);
+    const now = new Date();
+    const diffTime = Math.abs(now - createdDate);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 30) {
+      return `${diffDays} days`;
+    } else if (diffDays < 365) {
+      const months = Math.floor(diffDays / 30);
+      return `${months} month${months > 1 ? 's' : ''}`;
+    } else {
+      const years = Math.floor(diffDays / 365);
+      const remainingMonths = Math.floor((diffDays % 365) / 30);
+      return `${years} year${years > 1 ? 's' : ''}${remainingMonths > 0 ? `, ${remainingMonths} month${remainingMonths > 1 ? 's' : ''}` : ''}`;
+    }
+  };
 
-  if (!analytics) {
-    return (
-      <Card variant="outline" bg={bgColor} boxShadow="sm">
-        <CardBody p={6}>
-          <Flex justify="center" align="center" h="200px">
-            <Text fontSize="lg" color="gray.500">
-              No analytics data available yet.
-            </Text>
-          </Flex>
-        </CardBody>
-      </Card>
-    );
-  }
+  // Get user capabilities based on role
+  const getUserCapabilities = (role) => {
+    switch (role) {
+      case "instructor":
+        return [
+          "Create and manage courses",
+          "View analytics for your courses",
+          "Respond to student reviews",
+          "Create educational content",
+        ];
+      case "student":
+        return [
+          "Enroll in courses",
+          "Submit course reviews",
+          "Track learning progress",
+          "Interact with instructors",
+        ];
+      default:
+        return ["Limited platform access"];
+    }
+  };
 
   return (
-    <Card
-      variant="outline"
-      bg={bgColor}
-      boxShadow="md"
-      borderColor={borderColor}
-    >
-      <CardHeader pb={0}>
-        {/* Header with Analytics Title, Total Reviews and Rating */}
-        <Flex
-          direction={{ base: "column", md: "row" }}
-          justifyContent={{ base: "center", md: "space-between" }}
-          alignItems={{ base: "center", md: "center" }}
-          mb={2}
-          wrap="wrap"
-        >
-          <HStack spacing={2} mb={{ base: 4, md: 0 }}>
-            <Icon as={FaChartPie} color="purple.500" boxSize={5} />
-            <Heading size="md">Review Analytics</Heading>
-          </HStack>
+    <VStack spacing={6} align="stretch">
+      <Flex align="center" mb={4}>
+        <Icon as={FaIdCard} boxSize={5} color="blue.500" mr={3} />
+        <Heading size="md" color={textColor}>
+          Account Details
+        </Heading>
+      </Flex>
 
-          <HStack
-            spacing={{ base: 4, md: 8 }}
+      <Grid
+        templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }}
+        gap={6}
+      >
+        {/* Basic Information */}
+        <GridItem>
+          <Box
             bg={sectionBg}
-            p={3}
+            p={4}
             borderRadius="md"
-            shadow="sm"
+            borderWidth="1px"
+            borderColor={borderColor}
           >
-            <Stat textAlign="center" size="sm" minW="100px">
-              <StatLabel fontSize="xs" fontWeight="medium" color="gray.500">
-                Total Reviews
-              </StatLabel>
-              <StatNumber fontSize="2xl">{analytics.totalReviews}</StatNumber>
-            </Stat>
-
-            <Stat textAlign="center" size="sm" minW="100px">
-              <StatLabel fontSize="xs" fontWeight="medium" color="gray.500">
-                Avg. Rating
-              </StatLabel>
-              <StatNumber fontSize="2xl">
-                {analytics.totalReviews ? (
-                  <Flex alignItems="center" justifyContent="center">
-                    <Text mr={1}>{analytics.averageRating.toFixed(1)}</Text>
-                    <FaStar color="gold" />
+            <Flex align="center" mb={3}>
+              <Icon as={FaUserShield} mr={2} color="blue.500" />
+              <Text fontWeight="bold" fontSize="lg">
+                Basic Information
+              </Text>
+            </Flex>
+            <Divider mb={4} />
+            
+            <List spacing={3}>
+              <ListItem>
+                <Flex align="center" justify="space-between">
+                  <Text color={subtleTextColor}>Full Name:</Text>
+                  <Text fontWeight="medium">{userData?.name || "N/A"}</Text>
+                </Flex>
+              </ListItem>
+              
+              <ListItem>
+                <Flex align="center" justify="space-between">
+                  <Text color={subtleTextColor}>Email:</Text>
+                  <Flex align="center">
+                    <Icon as={FaEnvelope} mr={1} color="blue.500" fontSize="xs" />
+                    <Text fontWeight="medium">{userData?.email || "N/A"}</Text>
                   </Flex>
-                ) : (
-                  "N/A"
-                )}
-              </StatNumber>
-            </Stat>
-          </HStack>
-        </Flex>
-      </CardHeader>
+                </Flex>
+              </ListItem>
+              
+              <ListItem>
+                <Flex align="center" justify="space-between">
+                  <Text color={subtleTextColor}>Account Type:</Text>
+                  <Badge
+                    colorScheme={getRoleBadgeColor(userData?.role)}
+                    px={2}
+                    py={1}
+                    borderRadius="md"
+                    display="flex"
+                    alignItems="center"
+                  >
+                    <Icon as={getRoleIcon(userData?.role)} mr={1} />
+                    <Text textTransform="capitalize">{userData?.role || "User"}</Text>
+                  </Badge>
+                </Flex>
+              </ListItem>
+              
+              <ListItem>
+                <Flex align="center" justify="space-between">
+                  <Text color={subtleTextColor}>Status:</Text>
+                  <Badge
+                    colorScheme={isAccountActive ? "green" : "red"}
+                    variant="subtle"
+                    px={2}
+                    py={1}
+                    borderRadius="md"
+                  >
+                    <Flex align="center">
+                      <Icon
+                        as={isAccountActive ? FaCheckCircle : FaTimesCircle}
+                        mr={1}
+                      />
+                      <Text>{isAccountActive ? "Active" : "Inactive"}</Text>
+                    </Flex>
+                  </Badge>
+                </Flex>
+              </ListItem>
+            </List>
+          </Box>
+        </GridItem>
 
-      <CardBody pt={4}>
-        {/* Sentiment-based metrics */}
-        <Box mb={6} p={4} bg={sectionBg} borderRadius="md" boxShadow="sm">
-          <Flex align="center" mb={4}>
-            <Badge
-              colorScheme="purple"
-              fontSize="0.8em"
-              px={2}
-              py={1}
-              borderRadius="md"
-            >
-              NEW
-            </Badge>
-            <Text ml={2} fontWeight="bold" fontSize="md">
-              Sentiment Analysis
-            </Text>
-          </Flex>
-
-          <SimpleGrid columns={{ base: 1, md: 3 }} spacing={5} mb={4}>
-            <Flex
-              align="center"
-              p={2}
-              bg={bgColor}
-              borderRadius="md"
-              boxShadow="xs"
-            >
-              <Box color="green.500" mr={3} fontSize="1.8em">
-                <FaSmile />
-              </Box>
-              <Box>
-                <Text fontWeight="bold">Positive</Text>
-                <Text>
-                  {sentimentMetrics.positive} reviews (
-                  {sentimentMetrics.positivePercentage}%)
-                </Text>
-              </Box>
+        {/* Account Timeline */}
+        <GridItem>
+          <Box
+            bg={sectionBg}
+            p={4}
+            borderRadius="md"
+            borderWidth="1px"
+            borderColor={borderColor}
+          >
+            <Flex align="center" mb={3}>
+              <Icon as={FaCalendarAlt} mr={2} color="blue.500" />
+              <Text fontWeight="bold" fontSize="lg">
+                Account Timeline
+              </Text>
             </Flex>
+            <Divider mb={4} />
+            
+            <List spacing={3}>
+              <ListItem>
+                <Flex align="center" justify="space-between">
+                  <Text color={subtleTextColor}>Created:</Text>
+                  <Flex align="center">
+                    <Icon as={FaClock} color="blue.500" mr={1} fontSize="xs" />
+                    <Text fontWeight="medium">
+                      {formatDate(userData?.createdAt)}
+                    </Text>
+                  </Flex>
+                </Flex>
+              </ListItem>
+              
+              <ListItem>
+                <Flex align="center" justify="space-between">
+                  <Text color={subtleTextColor}>Last Updated:</Text>
+                  <Text fontWeight="medium">
+                    {formatDate(userData?.updatedAt)}
+                  </Text>
+                </Flex>
+              </ListItem>
+              
+              <ListItem>
+                <Flex align="center" justify="space-between">
+                  <Text color={subtleTextColor}>Account Age:</Text>
+                  <Badge colorScheme="blue" px={2} py={1} borderRadius="md">
+                    {getAccountAge()}
+                  </Badge>
+                </Flex>
+              </ListItem>
+            </List>
+          </Box>
+        </GridItem>
 
-            <Flex
-              align="center"
-              p={2}
-              bg={bgColor}
-              borderRadius="md"
-              boxShadow="xs"
-            >
-              <Box color="gray.500" mr={3} fontSize="1.8em">
-                <FaMeh />
-              </Box>
-              <Box>
-                <Text fontWeight="bold">Neutral</Text>
-                <Text>
-                  {sentimentMetrics.neutral} reviews (
-                  {sentimentMetrics.neutralPercentage}%)
-                </Text>
-              </Box>
-            </Flex>
-
-            <Flex
-              align="center"
-              p={2}
-              bg={bgColor}
-              borderRadius="md"
-              boxShadow="xs"
-            >
-              <Box color="red.500" mr={3} fontSize="1.8em">
-                <FaFrown />
-              </Box>
-              <Box>
-                <Text fontWeight="bold">Negative</Text>
-                <Text>
-                  {sentimentMetrics.negative} reviews (
-                  {sentimentMetrics.negativePercentage}%)
-                </Text>
-              </Box>
-            </Flex>
-          </SimpleGrid>
-
-          {/* Sentiment progress bar */}
-          <Box mt={4} px={2}>
-            <Flex>
-              <Progress
-                value={sentimentMetrics.positivePercentage}
-                colorScheme="green"
-                size="md"
-                flex={sentimentMetrics.positive || 0.5}
-                borderLeftRadius="md"
-                borderRightRadius={
-                  sentimentMetrics.neutral === 0 &&
-                  sentimentMetrics.negative === 0
-                    ? "md"
-                    : "none"
-                }
-                mr={
-                  sentimentMetrics.neutral > 0 || sentimentMetrics.negative > 0
-                    ? "1px"
-                    : 0
-                }
+        {/* Role Capabilities */}
+        <GridItem colSpan={{ base: 1, md: 2 }}>
+          <Box
+            bg={sectionBg}
+            p={4}
+            borderRadius="md"
+            borderWidth="1px"
+            borderColor={borderColor}
+          >
+            <Flex align="center" mb={3}>
+              <Icon
+                as={getRoleIcon(userData?.role)}
+                mr={2}
+                color="blue.500"
               />
-              {sentimentMetrics.neutral > 0 && (
-                <Progress
-                  value={sentimentMetrics.neutralPercentage}
-                  colorScheme="gray"
-                  size="md"
-                  flex={sentimentMetrics.neutral}
-                  borderRadius={
-                    sentimentMetrics.positive === 0
-                      ? "md 0 0 md"
-                      : sentimentMetrics.negative === 0
-                      ? "0 md md 0"
-                      : "none"
-                  }
-                  mr={sentimentMetrics.negative > 0 ? "1px" : 0}
-                />
-              )}
-              {sentimentMetrics.negative > 0 && (
-                <Progress
-                  value={sentimentMetrics.negativePercentage}
-                  colorScheme="red"
-                  size="md"
-                  flex={sentimentMetrics.negative || 0.5}
-                  borderLeftRadius={
-                    sentimentMetrics.positive === 0 &&
-                    sentimentMetrics.neutral === 0
-                      ? "md"
-                      : "none"
-                  }
-                  borderRightRadius="md"
-                />
-              )}
-            </Flex>
-            <Flex justify="space-between" mt={2}>
-              <Text fontSize="xs" fontWeight="medium">
-                Positive
-              </Text>
-              <Text fontSize="xs" fontWeight="medium">
-                Negative
+              <Text fontWeight="bold" fontSize="lg">
+                {userData?.role ? `${userData.role.charAt(0).toUpperCase() + userData.role.slice(1)} Capabilities` : "User Capabilities"}
               </Text>
             </Flex>
+            <Divider mb={4} />
+            
+            <List spacing={2}>
+              {getUserCapabilities(userData?.role).map((capability, index) => (
+                <ListItem key={index}>
+                  <Flex align="center">
+                    <ListIcon as={FaCheckCircle} color="green.500" />
+                    <Text>{capability}</Text>
+                  </Flex>
+                </ListItem>
+              ))}
+            </List>
           </Box>
-        </Box>
-
-        {/* Rating distribution */}
-        <Box mb={6} p={4} bg={sectionBg} borderRadius="md" boxShadow="sm">
-          <Flex align="center" mb={4}>
-            <Icon as={FaStar} color="gold" mr={2} />
-            <Text fontWeight="bold" fontSize="md">
-              Rating Distribution
-            </Text>
-          </Flex>
-
-          {[5, 4, 3, 2, 1].map((rating) => (
-            <Box key={rating} mb={3}>
-              <Flex align="center" mb={1}>
-                <Text width="15px" mr={3} fontWeight="bold">
-                  {rating}
-                </Text>
-                <Progress
-                  value={
-                    analytics.totalReviews
-                      ? ((analytics.ratingDistribution[rating] || 0) /
-                          analytics.totalReviews) *
-                        100
-                      : 0
-                  }
-                  colorScheme={
-                    rating > 3 ? "green" : rating === 3 ? "yellow" : "red"
-                  }
-                  size="md"
-                  width="100%"
-                  borderRadius="md"
-                />
-                <Text ml={3} width="40px" textAlign="right">
-                  {analytics.ratingDistribution[rating] || 0}
-                </Text>
-              </Flex>
-            </Box>
-          ))}
-        </Box>
-
-        {/* Common Feedback Themes */}
-        {(analytics.topPositiveKeywords?.length > 0 ||
-          analytics.topNegativeKeywords?.length > 0) && (
-          <Box p={4} bg={sectionBg} borderRadius="md" boxShadow="sm">
-            <Heading size="sm" mb={4}>
-              Common Feedback Themes
-            </Heading>
-
-            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-              <Flex
-                align="flex-start"
-                bg={bgColor}
-                p={3}
-                borderRadius="md"
-                boxShadow="xs"
-              >
-                <Box color="green.500" mr={3} mt={1}>
-                  <Icon as={FaThumbsUp} />
-                </Box>
-                <Box>
-                  <Text fontWeight="medium" mb={1}>
-                    Positive Feedback
-                  </Text>
-                  <Text>
-                    {analytics.topPositiveKeywords?.length > 0
-                      ? analytics.topPositiveKeywords.join(", ")
-                      : "No positive keywords found"}
-                  </Text>
-                </Box>
-              </Flex>
-
-              <Flex
-                align="flex-start"
-                bg={bgColor}
-                p={3}
-                borderRadius="md"
-                boxShadow="xs"
-              >
-                <Box color="red.500" mr={3} mt={1}>
-                  <Icon as={FaThumbsDown} />
-                </Box>
-                <Box>
-                  <Text fontWeight="medium" mb={1}>
-                    Negative Feedback
-                  </Text>
-                  <Text>
-                    {analytics.topNegativeKeywords?.length > 0
-                      ? analytics.topNegativeKeywords.join(", ")
-                      : "No negative keywords found"}
-                  </Text>
-                </Box>
-              </Flex>
-            </SimpleGrid>
-          </Box>
-        )}
-      </CardBody>
-    </Card>
+        </GridItem>
+      </Grid>
+    </VStack>
   );
 };
 
-export default CourseAnalytics;
+export default AccountDetails;

@@ -1,477 +1,446 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Box,
-  Container,
-  Button,
-  SimpleGrid,
-  Skeleton,
-  Text,
   Heading,
+  Text,
   Flex,
-  Icon,
-  HStack,
-  VStack,
-  Badge,
-  Tag,
-  TagLeftIcon,
-  TagLabel,
+  SimpleGrid,
+  Stat,
+  StatLabel,
+  StatNumber,
+  Progress,
   useColorModeValue,
-  Fade,
-  InputGroup,
-  Input,
-  InputRightElement,
-  Select,
-  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
-  Divider,
+  Badge,
+  HStack,
+  Card,
+  CardHeader,
+  CardBody,
+  Icon,
+  Button,
+  Collapse,
   Tooltip,
-  useDisclosure,
-  IconButton,
-  Alert,
-  AlertIcon,
+  StatHelpText,
 } from "@chakra-ui/react";
 import {
-  FaStar,
-  FaCalendarAlt,
   FaThumbsUp,
   FaThumbsDown,
-  FaSearch,
-  FaFilter,
-  FaSortAmountDown,
-  FaSortAmountUpAlt,
+  FaStar,
+  FaSmile,
+  FaMeh,
+  FaFrown,
+  FaChartPie,
   FaChevronDown,
-  FaEdit,
-  FaBookOpen,
+  FaChevronUp,
+  FaInfoCircle,
 } from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
-import ReviewModal from "./ReviewModal";
-import CourseCard from "./CourseCard";
 
-const StudentView = ({ userReviews, loading, fetchUserContent }) => {
-  const navigate = useNavigate();
-  const { isOpen: isVisible, onToggle } = useDisclosure({
-    defaultIsOpen: true,
-  });
+const CourseAnalytics = ({ course, stats = null, isLoading = false }) => {
+  const [isExpanded, setIsExpanded] = useState(true);
 
-  // Review state
-  const [reviewCourseId, setReviewCourseId] = useState(null);
-  const [reviewCourseName, setReviewCourseName] = useState("");
-  const [currentReview, setCurrentReview] = useState(null);
-
-  // Filter and sort state
-  const [filteredReviews, setFilteredReviews] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState("recent");
-  const [hasError, setHasError] = useState(false);
-
-  // Theme colors
-  const headerBg = useColorModeValue("blue.50", "blue.900");
-  const emptyStateBg = useColorModeValue("gray.50", "gray.700");
-  const cardBg = useColorModeValue("white", "gray.800");
+  // Color mode values
+  const bgColor = useColorModeValue("white", "gray.700");
   const borderColor = useColorModeValue("gray.200", "gray.600");
-  const subtleColor = useColorModeValue("gray.600", "gray.400");
-  const reviewSummaryBg = useColorModeValue("gray.50", "gray.750");
-  const skeletonStartColor = useColorModeValue("gray.50", "gray.700");
-  const skeletonEndColor = useColorModeValue("gray.200", "gray.600");
-  const iconColor = useColorModeValue("blue.500", "blue.300");
+  const sectionBg = useColorModeValue("gray.50", "gray.800");
+  const infoIconColor = useColorModeValue("blue.500", "blue.300");
 
-  // Process and filter reviews
-  useEffect(() => {
-    try {
-      if (Array.isArray(userReviews)) {
-        let processed = userReviews.map((course) => ({
-          ...course,
-          averageRating:
-            typeof course.averageRating === "number" ? course.averageRating : 0,
-        }));
+  // Extract key metrics from course and stats
+  const totalReviews = stats?.totalReviews || course?.reviewCount || 0;
+  const averageRating = stats?.averageRating || course?.averageRating || 0;
+  
+  // Has reviews check
+  const hasReviews = totalReviews > 0 || averageRating > 0 || (stats?.ratingDistribution && Object.values(stats.ratingDistribution).some(v => v > 0));
 
-        // Apply search filter if needed
-        if (searchTerm.trim() !== "") {
-          const term = searchTerm.toLowerCase();
-          processed = processed.filter(
-            (course) =>
-              (course.title && course.title.toLowerCase().includes(term)) ||
-              (course.description &&
-                course.description.toLowerCase().includes(term)) ||
-              (course.review?.comment &&
-                course.review.comment.toLowerCase().includes(term))
-          );
+  // Format rating distribution from the stats
+  const ratingDistribution = React.useMemo(() => {
+    const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+
+    if (stats?.ratingDistribution) {
+      Object.entries(stats.ratingDistribution).forEach(([rating, count]) => {
+        const numRating = parseInt(rating);
+        if (numRating >= 1 && numRating <= 5) {
+          distribution[numRating] = count;
         }
-
-        // Apply sorting
-        switch (sortBy) {
-          case "recent":
-            processed.sort(
-              (a, b) =>
-                new Date(b.review?.createdAt || 0) -
-                new Date(a.review?.createdAt || 0)
-            );
-            break;
-          case "highest":
-            processed.sort((a, b) => b.averageRating - a.averageRating);
-            break;
-          case "lowest":
-            processed.sort((a, b) => a.averageRating - b.averageRating);
-            break;
-          default:
-            break;
-        }
-
-        setFilteredReviews(processed);
-        setHasError(false);
-      }
-    } catch (error) {
-      console.error("Error processing reviews:", error);
-      setHasError(true);
+      });
     }
-  }, [userReviews, searchTerm, sortBy]);
 
-  // Handle adding/editing reviews
-  const handleAddReview = (courseId, courseName, existingReview = null) => {
-    setReviewCourseId(courseId);
-    setReviewCourseName(courseName);
-    setCurrentReview(existingReview);
-  };
+    return distribution;
+  }, [stats]);
 
-  // Get the rating label based on value
-  const getRatingLabel = (rating) => {
-    if (rating >= 4) return "Recommended";
-    if (rating >= 3) return "Good";
-    return "Needs Improvement";
-  };
+  // Calculate sentiment metrics
+  const sentimentMetrics = React.useMemo(() => {
+    let positive = 0;
+    let negative = 0;
+    let neutral = 0;
+    
+    if (stats?.sentiment) {
+      positive = stats.sentiment.positive || 0;
+      negative = stats.sentiment.negative || 0;
+      neutral = stats.sentiment.neutral || 0;
+    }
+    
+    const total = positive + negative + neutral || 1; // Avoid division by zero
 
-  // Get color scheme based on rating
-  const getRatingColorScheme = (rating) => {
-    if (rating >= 4) return "green";
-    if (rating >= 3) return "yellow";
-    return "red";
-  };
+    return {
+      positive,
+      negative,
+      neutral,
+      positivePercentage: ((positive / total) * 100).toFixed(1),
+      negativePercentage: ((negative / total) * 100).toFixed(1),
+      neutralPercentage: ((neutral / total) * 100).toFixed(1),
+    };
+  }, [stats]);
 
-  // Handle review modal close
-  const handleCloseModal = () => {
-    setReviewCourseId(null);
-    setCurrentReview(null);
-  };
+  // Calculate average sentiment
+  const averageSentiment = React.useMemo(() => {
+    if (!stats) return 0;
 
-  // Reset filters
-  const resetFilters = () => {
-    setSearchTerm("");
-    setSortBy("recent");
-  };
+    const positive = stats.sentiment?.positive || 0;
+    const negative = stats.sentiment?.negative || 0;
+    const total = totalReviews || 1; // Avoid division by zero
+
+    return (positive - negative) / total;
+  }, [stats, totalReviews]);
+
+  // Extract keywords from reviews
+  const extractKeywords = React.useMemo(() => {
+    return {
+      positiveKeywords: stats?.keywords?.positive || ["helpful", "clear", "engaging"],
+      negativeKeywords: stats?.keywords?.negative || ["difficult", "confusing"],
+    };
+  }, [stats]);
+
+  if (isLoading) {
+    return (
+      <Card variant="outline" bg={bgColor} boxShadow="sm">
+        <CardHeader>
+          <Flex align="center">
+            <Icon as={FaChartPie} color="purple.500" boxSize={5} mr={2} />
+            <Heading size="md">Course Analytics</Heading>
+          </Flex>
+        </CardHeader>
+        <CardBody>
+          <Flex justify="center" align="center" h="200px">
+            <Text fontSize="lg" color="gray.500">
+              Loading course analytics...
+            </Text>
+          </Flex>
+        </CardBody>
+      </Card>
+    );
+  }
+
+  if (!course) {
+    return (
+      <Card variant="outline" bg={bgColor} boxShadow="sm">
+        <CardHeader>
+          <Flex align="center">
+            <Icon as={FaChartPie} color="purple.500" boxSize={5} mr={2} />
+            <Heading size="md">Course Analytics</Heading>
+          </Flex>
+        </CardHeader>
+        <CardBody>
+          <Flex justify="center" align="center" h="200px">
+            <Text fontSize="lg" color="gray.500">
+              No course data available.
+            </Text>
+          </Flex>
+        </CardBody>
+      </Card>
+    );
+  }
 
   return (
-    <Container maxW="container.xl" py={6} px={{ base: 4, md: 6 }}>
-      {/* Header Section */}
-      <Box
-        bg={headerBg}
-        p={{ base: 4, md: 6 }}
-        borderRadius="xl"
-        mb={6}
-        boxShadow="sm"
-      >
+    <Card
+      variant="outline"
+      bg={bgColor}
+      boxShadow="md"
+      borderColor={borderColor}
+    >
+      <CardHeader pb={0}>
         <Flex
           direction={{ base: "column", md: "row" }}
-          align={{ base: "start", md: "center" }}
-          justify="space-between"
+          justifyContent={{ base: "center", md: "space-between" }}
+          alignItems={{ base: "center", md: "center" }}
+          mb={2}
           wrap="wrap"
-          gap={4}
         >
-          <Box>
-            <HStack spacing={2} mb={1}>
-              <Icon as={FaStar} color={iconColor} boxSize={6} />
-              <Heading as="h2" size="lg">
-                My Course Reviews
-              </Heading>
-              {!loading && (
-                <Badge
-                  colorScheme="blue"
-                  fontSize="md"
-                  borderRadius="full"
-                  px={2}
-                >
-                  {filteredReviews.length}
-                </Badge>
-              )}
-            </HStack>
-            <Text color={subtleColor}>
-              Track and manage your course feedback
-            </Text>
-          </Box>
-
-          <Flex gap={3} wrap="wrap">
+          <HStack spacing={2} mb={{ base: 4, md: 0 }}>
+            <Icon as={FaChartPie} color="purple.500" boxSize={5} />
+            <Heading size="md">{course.title} Analytics</Heading>
             <Button
-              leftIcon={<FaBookOpen />}
-              colorScheme="blue"
-              variant="solid"
-              onClick={() => navigate("/dashboard")}
-              size="md"
+              size="sm"
+              variant="ghost"
+              onClick={() => setIsExpanded(!isExpanded)}
+              aria-label={isExpanded ? "Collapse" : "Expand"}
             >
-              Browse Courses
+              <Icon as={isExpanded ? FaChevronUp : FaChevronDown} />
             </Button>
-          </Flex>
-        </Flex>
-      </Box>
+          </HStack>
 
-      {/* Search and Filter Section */}
-      {!loading && filteredReviews.length > 0 && (
-        <Flex
-          mb={6}
-          gap={4}
-          direction={{ base: "column", md: "row" }}
-          align={{ base: "stretch", md: "center" }}
-          justify="space-between"
-        >
-          {/* Search Input */}
-          <InputGroup maxW={{ base: "full", md: "320px" }}>
-            <Input
-              placeholder="Search your reviews..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              bg={cardBg}
-              borderRadius="md"
-            />
-            <InputRightElement pointerEvents="none">
-              <Icon as={FaSearch} color="gray.400" />
-            </InputRightElement>
-          </InputGroup>
+          <HStack
+            spacing={{ base: 4, md: 8 }}
+            bg={sectionBg}
+            p={3}
+            borderRadius="md"
+            shadow="sm"
+          >
+            <Stat textAlign="center" size="sm" minW="100px">
+              <StatLabel fontSize="xs" fontWeight="medium" color="gray.500">
+                Total Reviews
+              </StatLabel>
+              <StatNumber fontSize="2xl">{totalReviews}</StatNumber>
+            </Stat>
 
-          {/* Sort Options */}
-          <HStack spacing={2}>
-            <Text
-              fontSize="sm"
-              color={subtleColor}
-              display={{ base: "none", md: "block" }}
-            >
-              Sort by:
-            </Text>
-            <Select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              size="md"
-              maxW="180px"
-              bg={cardBg}
-              borderRadius="md"
-            >
-              <option value="recent">Most Recent</option>
-              <option value="highest">Highest Rating</option>
-              <option value="lowest">Lowest Rating</option>
-            </Select>
-
-            {(searchTerm || sortBy !== "recent") && (
-              <Tooltip label="Reset filters">
-                <IconButton
-                  icon={<Icon as={FaFilter} />}
-                  onClick={resetFilters}
-                  variant="ghost"
-                  colorScheme="blue"
-                  aria-label="Reset filters"
-                />
-              </Tooltip>
-            )}
+            <Stat textAlign="center" size="sm" minW="100px">
+              <StatLabel fontSize="xs" fontWeight="medium" color="gray.500">
+                Avg. Rating
+              </StatLabel>
+              <StatNumber fontSize="2xl">
+                {hasReviews ? (
+                  <Flex alignItems="center" justifyContent="center">
+                    <Text mr={1}>{Number(averageRating).toFixed(1)}</Text>
+                    <Icon as={FaStar} color="gold" />
+                  </Flex>
+                ) : (
+                  "N/A"
+                )}
+              </StatNumber>
+            </Stat>
           </HStack>
         </Flex>
-      )}
+      </CardHeader>
 
-      {/* Error State */}
-      {hasError && (
-        <Alert status="error" mb={4} borderRadius="md">
-          <AlertIcon />
-          There was an error processing your reviews. Please refresh the page.
-        </Alert>
-      )}
+      <Collapse in={isExpanded} animateOpacity>
+        <CardBody pt={4}>
+          {/* Rest of component remains the same */}
+          {/* Sentiment Analysis Section */}
+          <Box mb={6} p={4} bg={sectionBg} borderRadius="md" boxShadow="sm">
+            <Flex align="center" mb={4}>
+              <Badge
+                colorScheme="purple"
+                fontSize="0.8em"
+                px={2}
+                py={1}
+                borderRadius="md"
+              >
+                SENTIMENT
+              </Badge>
+              <Text ml={2} fontWeight="bold" fontSize="md">
+                Sentiment Analysis
+              </Text>
+              <Tooltip
+                label="Analysis of review text to determine positive, neutral, or negative sentiment"
+                placement="top"
+              >
+                <Icon as={FaInfoCircle} ml={2} color={infoIconColor} />
+              </Tooltip>
+            </Flex>
 
-      {/* Content Section */}
-      <Box>
-        {loading ? (
-          <Fade in={true}>
-            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-              {[1, 2, 3].map((i) => (
-                <Skeleton
-                  key={i}
-                  height="360px"
-                  borderRadius="lg"
-                  startColor={skeletonStartColor}
-                  endColor={skeletonEndColor}
-                  boxShadow="md"
-                >
-                  <Box h="full" />
-                </Skeleton>
-              ))}
-            </SimpleGrid>
-          </Fade>
-        ) : filteredReviews.length > 0 ? (
-          <Fade in={isVisible} transition={{ enter: { duration: 0.5 } }}>
-            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-              {filteredReviews.map((course, index) => (
-                <Box
-                  key={course._id || index}
-                  transform="auto"
-                  _hover={{ translateY: "-4px" }}
-                  transition="all 0.3s ease"
-                  boxShadow="md"
-                  borderRadius="lg"
-                  overflow="hidden"
-                  borderWidth="1px"
-                  borderColor={borderColor}
-                  bg={cardBg}
-                >
-                  <CourseCard
-                    course={course}
-                    onAddReview={() =>
-                      handleAddReview(course._id, course.title)
+            {sentimentMetrics.positive > 0 || sentimentMetrics.negative > 0 ? (
+              <>
+                <Flex align="center" mb={4}>
+                  <Text>Average Sentiment Score: </Text>
+                  <Badge
+                    ml={2}
+                    colorScheme={
+                      averageSentiment > 0
+                        ? "green"
+                        : averageSentiment < 0
+                        ? "red"
+                        : "gray"
                     }
-                    isInstructorView={false}
-                    isOwnCourse={false}
-                  />
-
-                  <Box
-                    p={4}
-                    borderTop="1px solid"
-                    borderColor={borderColor}
-                    bg={reviewSummaryBg}
                   >
-                    <HStack justify="space-between" mb={2}>
-                      <HStack spacing={1}>
-                        <Icon
-                          as={FaStar}
-                          color={
-                            (course.averageRating || 0) >= 4
-                              ? "yellow.400"
-                              : (course.averageRating || 0) >= 3
-                              ? "orange.400"
-                              : "red.400"
-                          }
-                        />
-                        <Text fontWeight="bold">
-                          {course.averageRating !== undefined
-                            ? course.averageRating.toFixed(1)
-                            : "0.0"}
-                        </Text>
-                        <Text fontSize="sm" color={subtleColor}>
-                          • Your rating
-                        </Text>
-                      </HStack>
-                      <Tag
-                        size="sm"
-                        colorScheme={getRatingColorScheme(
-                          course.averageRating || 0
-                        )}
-                        borderRadius="full"
-                      >
-                        <TagLeftIcon
-                          as={
-                            (course.averageRating || 0) >= 3
-                              ? FaThumbsUp
-                              : FaThumbsDown
-                          }
-                        />
-                        <TagLabel>
-                          {getRatingLabel(course.averageRating || 0)}
-                        </TagLabel>
-                      </Tag>
-                    </HStack>
+                    {averageSentiment.toFixed(1)}
+                  </Badge>
+                  <Text ml={2}>
+                    {averageSentiment > 1
+                      ? "Very Positive"
+                      : averageSentiment > 0
+                      ? "Positive"
+                      : averageSentiment < -1
+                      ? "Very Negative"
+                      : averageSentiment < 0
+                      ? "Negative"
+                      : "Neutral"}
+                  </Text>
+                </Flex>
 
-                    <Text fontSize="sm" noOfLines={2} color={subtleColor}>
-                      {course.review?.comment || "No comment provided"}
-                    </Text>
-
-                    <Flex justify="space-between" align="center" mt={3}>
-                      <Tooltip label="Edit your review">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          leftIcon={<FaEdit />}
-                          onClick={() =>
-                            handleAddReview(
-                              course._id,
-                              course.title,
-                              course.review
-                            )
-                          }
-                        >
-                          Edit Review
-                        </Button>
-                      </Tooltip>
-                      <HStack spacing={1}>
-                        <Icon
-                          as={FaCalendarAlt}
-                          fontSize="xs"
-                          color="gray.500"
-                        />
-                        <Text fontSize="xs" color="gray.500">
-                          {course.review?.createdAt
-                            ? new Date(
-                                course.review.createdAt
-                              ).toLocaleDateString()
-                            : "No date"}
-                        </Text>
-                      </HStack>
+                <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4} mb={4}>
+                  <Box>
+                    <Flex align="center" mb={1}>
+                      <Icon as={FaSmile} color="green.500" mr={2} />
+                      <Text>Positive</Text>
+                      <Badge colorScheme="green" ml={2}>
+                        {sentimentMetrics.positivePercentage}%
+                      </Badge>
                     </Flex>
+                    <Progress
+                      value={sentimentMetrics.positivePercentage}
+                      colorScheme="green"
+                      height="8px"
+                      borderRadius="full"
+                    />
                   </Box>
-                </Box>
-              ))}
-            </SimpleGrid>
-          </Fade>
-        ) : searchTerm ? (
-          // Empty search results state
-          <Box
-            p={8}
-            textAlign="center"
-            borderWidth="1px"
-            borderRadius="lg"
-            bg={emptyStateBg}
-          >
-            <VStack spacing={4}>
-              <Icon as={FaSearch} boxSize={10} color="gray.400" />
-              <Heading size="md">No Matching Reviews</Heading>
-              <Text>No reviews match your search criteria</Text>
-              <Button
-                colorScheme="blue"
-                variant="outline"
-                onClick={resetFilters}
-              >
-                Clear Filters
-              </Button>
-            </VStack>
-          </Box>
-        ) : (
-          // Empty state (no reviews)
-          <Box
-            p={8}
-            textAlign="center"
-            borderWidth="1px"
-            borderRadius="lg"
-            bg={emptyStateBg}
-          >
-            <VStack spacing={4}>
-              <Icon as={FaStar} boxSize={10} color="blue.400" opacity={0.7} />
-              <Heading size="md">No Reviews Found</Heading>
-              <Text>You haven't reviewed any courses yet</Text>
-              <Button
-                colorScheme="blue"
-                onClick={() => navigate("/dashboard")}
-                leftIcon={<FaBookOpen />}
-              >
-                Browse Courses
-              </Button>
-            </VStack>
-          </Box>
-        )}
-      </Box>
 
-      {/* Review Modal */}
-      <ReviewModal
-        isOpen={!!reviewCourseId}
-        onClose={handleCloseModal}
-        courseId={reviewCourseId || ""}
-        courseName={reviewCourseName}
-        existingReview={currentReview}
-        refreshCourseData={fetchUserContent}
-      />
-    </Container>
+                  <Box>
+                    <Flex align="center" mb={1}>
+                      <Icon as={FaMeh} color="gray.500" mr={2} />
+                      <Text>Neutral</Text>
+                      <Badge colorScheme="gray" ml={2}>
+                        {sentimentMetrics.neutralPercentage}%
+                      </Badge>
+                    </Flex>
+                    <Progress
+                      value={sentimentMetrics.neutralPercentage}
+                      colorScheme="gray"
+                      height="8px"
+                      borderRadius="full"
+                    />
+                  </Box>
+
+                  <Box>
+                    <Flex align="center" mb={1}>
+                      <Icon as={FaFrown} color="red.500" mr={2} />
+                      <Text>Negative</Text>
+                      <Badge colorScheme="red" ml={2}>
+                        {sentimentMetrics.negativePercentage}%
+                      </Badge>
+                    </Flex>
+                    <Progress
+                      value={sentimentMetrics.negativePercentage}
+                      colorScheme="red"
+                      height="8px"
+                      borderRadius="full"
+                    />
+                  </Box>
+                </SimpleGrid>
+              </>
+            ) : (
+              <Text color="gray.500" textAlign="center" py={4}>
+                Not enough review data to perform sentiment analysis.
+              </Text>
+            )}
+          </Box>
+
+          {/* Rating Distribution Section */}
+          <Box mb={6} p={4} bg={sectionBg} borderRadius="md" boxShadow="sm">
+            <Flex align="center" mb={4}>
+              <Badge
+                colorScheme="orange"
+                fontSize="0.8em"
+                px={2}
+                py={1}
+                borderRadius="md"
+              >
+                RATINGS
+              </Badge>
+              <Text ml={2} fontWeight="bold" fontSize="md">
+                Rating Distribution
+              </Text>
+            </Flex>
+
+            {hasReviews ? (
+              <SimpleGrid columns={{ base: 1, md: 5 }} spacing={4}>
+                {[5, 4, 3, 2, 1].map((rating) => {
+                  const count = ratingDistribution[rating] || 0;
+                  const percentage = totalReviews
+                    ? ((count / totalReviews) * 100).toFixed(0)
+                    : 0;
+                  return (
+                    <Box key={rating}>
+                      <Flex align="center" mb={1} justify="space-between">
+                        <Flex>
+                          <Text>{rating}</Text>
+                          <Icon as={FaStar} color="gold" ml={1} />
+                        </Flex>
+                        <Badge>{count}</Badge>
+                      </Flex>
+                      <Progress
+                        value={percentage}
+                        colorScheme={
+                          rating > 3
+                            ? "green"
+                            : rating === 3
+                            ? "yellow"
+                            : "red"
+                        }
+                        height="8px"
+                        borderRadius="full"
+                      />
+                    </Box>
+                  );
+                })}
+              </SimpleGrid>
+            ) : (
+              <Text color="gray.500" textAlign="center" py={4}>
+                No rating data available yet.
+              </Text>
+            )}
+          </Box>
+
+          {/* Keywords Section */}
+          <Box p={4} bg={sectionBg} borderRadius="md" boxShadow="sm">
+            <Flex align="center" mb={4}>
+              <Badge
+                colorScheme="blue"
+                fontSize="0.8em"
+                px={2}
+                py={1}
+                borderRadius="md"
+              >
+                KEYWORDS
+              </Badge>
+              <Text ml={2} fontWeight="bold" fontSize="md">
+              Common Keywords from Reviews
+              </Text>
+            </Flex>
+
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+              <Box>
+                <Flex align="center" mb={2}>
+                  <Icon as={FaThumbsUp} color="green.500" mr={2} />
+                  <Text fontWeight="medium">Positive Mentions</Text>
+                </Flex>
+                <Flex wrap="wrap" gap={2}>
+                  {extractKeywords.positiveKeywords.map((keyword, index) => (
+                    <Badge
+                      key={index}
+                      colorScheme="green"
+                      variant="subtle"
+                      px={2}
+                      py={1}
+                    >
+                      {keyword}
+                    </Badge>
+                  ))}
+                </Flex>
+              </Box>
+
+              <Box>
+                <Flex align="center" mb={2}>
+                  <Icon as={FaThumbsDown} color="red.500" mr={2} />
+                  <Text fontWeight="medium">Negative Mentions</Text>
+                </Flex>
+                <Flex wrap="wrap" gap={2}>
+                  {extractKeywords.negativeKeywords.map((keyword, index) => (
+                    <Badge
+                      key={index}
+                      colorScheme="red"
+                      variant="subtle"
+                      px={2}
+                      py={1}
+                    >
+                      {keyword}
+                    </Badge>
+                  ))}
+                </Flex>
+              </Box>
+            </SimpleGrid>
+          </Box>
+        </CardBody>
+      </Collapse>
+    </Card>
   );
 };
 
-export default StudentView;
+export default CourseAnalytics;

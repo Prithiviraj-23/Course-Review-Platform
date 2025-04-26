@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Box,
   Button,
@@ -16,9 +16,19 @@ import {
   Container,
   Tooltip,
 } from "@chakra-ui/react";
-import { FaEdit, FaKey, FaUser, FaEnvelope, FaCalendarAlt } from "react-icons/fa";
+import {
+  FaEdit,
+  FaKey,
+  FaUser,
+  FaEnvelope,
+  FaCalendarAlt,
+} from "react-icons/fa";
+import ChangePasswordModal from "./ChangePasswordModal ";
 
 const ProfileHeader = ({ userData, onEditClick }) => {
+  // Add state for the password modal
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+
   // Enhanced color scheme
   const bgColor = useColorModeValue("white", "gray.800");
   const cardBg = useColorModeValue("gray.50", "gray.700");
@@ -45,7 +55,10 @@ const ProfileHeader = ({ userData, onEditClick }) => {
   const formatJoinDate = () => {
     if (!userData?.joinedAt) return "Member";
     const date = new Date(userData.joinedAt);
-    return `Joined ${date.toLocaleDateString("en-US", { month: "long", year: "numeric" })}`;
+    return `Joined ${date.toLocaleDateString("en-US", {
+      month: "long",
+      year: "numeric",
+    })}`;
   };
 
   return (
@@ -60,10 +73,10 @@ const ProfileHeader = ({ userData, onEditClick }) => {
     >
       {/* Header background */}
       <Box bg={headerBg} h="80px" position="relative" />
-      
+
       <Container maxW="container.lg" px={{ base: 4, md: 8 }}>
-        <Flex 
-          direction={{ base: "column", md: "row" }} 
+        <Flex
+          direction={{ base: "column", md: "row" }}
           align={{ base: "center", md: "stretch" }}
           mt={{ base: -12, md: -16 }}
           mb={6}
@@ -87,9 +100,12 @@ const ProfileHeader = ({ userData, onEditClick }) => {
               borderColor={bgColor}
               boxShadow="lg"
             />
-            
+
             {/* Role badge */}
-            <Tooltip label={`${userData?.role || 'User'} account`} placement="top">
+            <Tooltip
+              label={`${userData?.role || "User"} account`}
+              placement="top"
+            >
               <Badge
                 position="absolute"
                 bottom={2}
@@ -109,19 +125,22 @@ const ProfileHeader = ({ userData, onEditClick }) => {
 
           {/* User info section */}
           <Box flex={1}>
-            <Flex 
-              direction={{ base: "column", md: "row" }} 
-              justify="space-between" 
+            <Flex
+              direction={{ base: "column", md: "row" }}
+              justify="space-between"
               align={{ base: "center", md: "flex-start" }}
               wrap="wrap"
               mb={4}
             >
               {/* Name and badges */}
-              <Box mb={{ base: 4, md: 0 }} textAlign={{ base: "center", md: "left" }}>
+              <Box
+                mb={{ base: 4, md: 0 }}
+                textAlign={{ base: "center", md: "left" }}
+              >
                 <Heading as="h1" size="xl" color={textColor} mb={1}>
                   {userData?.name || "User"}
                 </Heading>
-                
+
                 <HStack spacing={2} mb={2}>
                   <Badge colorScheme="green" py={1} px={2} borderRadius="full">
                     Active Account
@@ -131,34 +150,37 @@ const ProfileHeader = ({ userData, onEditClick }) => {
                     {formatJoinDate()}
                   </Badge>
                 </HStack>
-                
+
                 <Flex align="center" color={subtleText}>
                   <Icon as={FaEnvelope} mr={2} />
-                  <Text fontSize="md">{userData?.email || "user@example.com"}</Text>
+                  <Text fontSize="md">
+                    {userData?.email || "user@example.com"}
+                  </Text>
                 </Flex>
               </Box>
 
               {/* Action buttons */}
-              <Stack 
+              <Stack
                 direction={{ base: "column", sm: "row" }}
                 spacing={3}
                 align={{ base: "center", md: "flex-end" }}
                 mt={{ base: 2, md: 0 }}
               >
-                <Button 
-                  leftIcon={<FaEdit />} 
-                  colorScheme="blue" 
+                <Button
+                  leftIcon={<FaEdit />}
+                  colorScheme="blue"
                   onClick={onEditClick}
                   size="md"
                   boxShadow="sm"
                 >
                   Edit Profile
                 </Button>
-                <Button 
-                  leftIcon={<FaKey />} 
-                  variant="outline" 
+                <Button
+                  leftIcon={<FaKey />}
+                  variant="outline"
                   colorScheme="blue"
                   size="md"
+                  onClick={() => setIsPasswordModalOpen(true)}
                 >
                   Change Password
                 </Button>
@@ -167,9 +189,9 @@ const ProfileHeader = ({ userData, onEditClick }) => {
 
             {/* Additional user info cards */}
             {userData?.bio && (
-              <Box 
-                bg={cardBg} 
-                p={4} 
+              <Box
+                bg={cardBg}
+                p={4}
                 borderRadius="md"
                 borderWidth="1px"
                 borderColor={borderColor}
@@ -184,6 +206,12 @@ const ProfileHeader = ({ userData, onEditClick }) => {
           </Box>
         </Flex>
       </Container>
+
+      {/* Password Change Modal */}
+      <ChangePasswordModal
+        isOpen={isPasswordModalOpen}
+        onClose={() => setIsPasswordModalOpen(false)}
+      />
     </Box>
   );
 };

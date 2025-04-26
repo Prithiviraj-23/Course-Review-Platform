@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
@@ -19,13 +19,14 @@ import ProfileHeader from "../components/ProfileHeader";
 import AccountDetails from "../components/AccountDetails";
 import StudentView from "../components/StudentView";
 import InstructorView from "../components/InstructorView";
-import EditProfileModal from "../components/EditProfileModel"
+import EditProfileModal from "../components/EditProfileModel";
 
 const Profile = () => {
   // Get all hooks first - this ensures consistent hook order
   const toast = useToast();
   const navigate = useNavigate();
   const { token } = useSelector((state) => state.auth);
+  const bgColor = useColorModeValue("white", "gray.700"); // Move this hook to the top level
 
   // All state hooks
   const [userData, setUserData] = useState(null);
@@ -34,80 +35,29 @@ const Profile = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [userReviews, setUserReviews] = useState([]);
   const [userCourses, setUserCourses] = useState([]);
-  const [courseAnalytics, setCourseAnalytics] = useState({});
+
+  // New state for storing course stats
+  const [courseStats, setCourseStats] = useState({});
+  const [statsLoading, setStatsLoading] = useState({});
+  const [allStatsLoaded, setAllStatsLoaded] = useState(false);
+
+  // Loading states
   const [loadingCourses, setLoadingCourses] = useState(false);
+  const [loadingReviews, setLoadingReviews] = useState(false);
 
-  // Process reviews to generate analytics - define outside useEffect
-  const processReviewAnalytics = (reviews, course) => {
-    const totalReviews = reviews.length;
-    if (totalReviews === 0) {
-      return {
-        totalReviews: 0,
-        positiveReviews: 0,
-        negativeReviews: 0,
-        ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
-        averageRating: 0,
-        topPositiveKeywords: [],
-        topNegativeKeywords: [],
-      };
-    }
-
-    // Calculate rating distribution
-    const ratingDistribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-    let totalRating = 0;
-
-    reviews.forEach((review) => {
-      const rating = review.rating;
-      ratingDistribution[rating] = (ratingDistribution[rating] || 0) + 1;
-      totalRating += rating;
-    });
-
-    const averageRating = totalRating / totalReviews;
-    const positiveReviews = reviews.filter((r) => r.rating >= 4).length;
-    const negativeReviews = reviews.filter((r) => r.rating <= 2).length;
-
-    // Simple keyword extraction
-    const keywords = {
-      positive: ["excellent", "great", "helpful", "clear", "engaging"],
-      negative: ["difficult", "confusing", "boring", "hard", "unclear"],
-    };
-
-    const extractKeywords = (type) => {
-      const counts = {};
-      reviews.forEach((review) => {
-        if (review.comment) {
-          const comment = review.comment.toLowerCase();
-          keywords[type].forEach((keyword) => {
-            if (comment.includes(keyword)) {
-              counts[keyword] = (counts[keyword] || 0) + 1;
-            }
-          });
-        }
-      });
-
-      return Object.entries(counts)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 3)
-        .map((entry) => entry[0]);
-    };
-
-    return {
-      totalReviews,
-      positiveReviews,
-      negativeReviews,
-      ratingDistribution,
-      averageRating,
-      topPositiveKeywords: extractKeywords("positive"),
-      topNegativeKeywords: extractKeywords("negative"),
-    };
-  };
+  // Track which data has been loaded
+  const [dataLoaded, setDataLoaded] = useState({
+    courses: false,
+    reviews: false,
+    analytics: false,
+  });
 
   // Function to fetch user data
-  const fetchUserData = async () => {
+  const fetchUserData = useCallback(async () => {
     try {
       setLoading(true);
       const response = await axios.get(
-        "http://localhost:5000/api/auth/getuser",
+        `${import.meta.env.VITE_API_URL}/api/auth/getuser`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -115,6 +65,7 @@ const Profile = () => {
         }
       );
       setUserData(response.data.user);
+      return response.data.user;
     } catch (err) {
       setError("Failed to fetch user data");
       toast({
@@ -124,105 +75,280 @@ const Profile = () => {
         duration: 5000,
         isClosable: true,
       });
+      return null;
     } finally {
       setLoading(false);
     }
-  };
+  }, [token, toast]);
 
-  // Function to fetch courses and reviews - fix API endpoint
-  const fetchUserContent = async () => {
-    if (!userData) return;
+  // Function to fetch user reviews - called only when reviews tab is selected
+  const fetchUserReviews = useCallback(async () => {
+    if (dataLoaded.reviews) return; // Skip if already loaded
 
-    setLoadingCourses(true);
+    setLoadingReviews(true);
     try {
-      // Try API endpoint for reviews - adjust based on your actual API
       const reviewsResponse = await axios.get(
-        // Fix the API endpoint - check your backend for the correct path
-        "http://localhost:5000/api/reviews/user-reviews", // or "reviews/by-user" or whatever endpoint your API uses
+        `${import.meta.env.VITE_API_URL}/api/reviews/user-reviews`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
       setUserReviews(reviewsResponse.data || []);
-
-      // If user is an instructor, fetch their courses
-      if (userData?.role === "instructor") {
-        const coursesResponse = await axios.get(
-          "http://localhost:5000/api/courses/instructor-courses",
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        setUserCourses(coursesResponse.data || []);
-
-        // For each course, fetch its reviews to build analytics
-        const analytics = {};
-        for (const course of coursesResponse.data) {
-          try {
-            const courseReviews = await axios.get(
-              `http://localhost:5000/api/reviews/course/${course._id}`,
-              {
-                headers: { Authorization: `Bearer ${token}` },
-              }
-            );
-
-            analytics[course._id] = processReviewAnalytics(
-              courseReviews.data,
-              course
-            );
-          } catch (error) {
-            console.error(
-              `Error fetching reviews for course ${course._id}:`,
-              error
-            );
-          }
-        }
-        setCourseAnalytics(analytics);
-      }
+      setDataLoaded((prev) => ({ ...prev, reviews: true }));
     } catch (error) {
-      console.error("Error in fetchUserContent:", error);
-      // Don't show toast for 404 errors repeatedly - it creates a bad UX
+      console.error("Error fetching user reviews:", error);
       if (error?.response?.status !== 404) {
         toast({
           title: "Error",
-          description: "Failed to load courses and reviews",
+          description: "Failed to load reviews",
           status: "error",
           duration: 5000,
           isClosable: true,
         });
       }
-      // Handle empty data gracefully
       setUserReviews([]);
-      if (userData?.role === "instructor") {
-        setUserCourses([]);
-      }
     } finally {
-      setLoadingCourses(false);
+      setLoadingReviews(false);
     }
-  };
+  }, [token, toast, dataLoaded.reviews]);
+
+  // UPDATED: Function to fetch instructor courses with force reload option
+  const fetchInstructorCourses = useCallback(
+    async (forceReload = false) => {
+      if (dataLoaded.courses && !forceReload) return; // Skip if already loaded and not forcing reload
+
+      setLoadingCourses(true);
+      try {
+        console.log("Fetching instructor courses...");
+        const coursesResponse = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/courses/instructor-courses`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        console.log("Instructor courses loaded:", coursesResponse.data?.length);
+        setUserCourses(coursesResponse.data || []);
+        setDataLoaded((prev) => ({ ...prev, courses: true }));
+      } catch (error) {
+        console.error("Error fetching instructor courses:", error);
+        if (error?.response?.status !== 404) {
+          toast({
+            title: "Error",
+            description: "Failed to load courses",
+            status: "error",
+            duration: 5000,
+            isClosable: true,
+          });
+        }
+        setUserCourses([]);
+      } finally {
+        setLoadingCourses(false);
+      }
+    },
+    [token, toast, dataLoaded.courses]
+  );
+
+  // Function to fetch analytics data for a single course
+  const fetchCourseStats = useCallback(
+    async (courseId) => {
+      if (!courseId) return;
+
+      try {
+        // Mark this specific course stats as loading
+        setStatsLoading((prev) => ({ ...prev, [courseId]: true }));
+
+        // Make the API call to get stats
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/reviews/course/${courseId}/stats`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        // Store the stats
+        setCourseStats((prev) => ({
+          ...prev,
+          [courseId]: response.data,
+        }));
+      } catch (error) {
+        console.error(`Error fetching stats for course ${courseId}:`, error);
+        // On error, store null for this course's stats
+        setCourseStats((prev) => ({
+          ...prev,
+          [courseId]: null,
+        }));
+
+        if (error?.response?.status !== 404) {
+          toast({
+            title: "Error",
+            description: `Could not load analytics for ${courseId}`,
+            status: "error",
+            duration: 3000,
+            isClosable: true,
+          });
+        }
+      } finally {
+        setStatsLoading((prev) => ({ ...prev, [courseId]: false }));
+      }
+    },
+    [token, toast]
+  );
+
+  // Function to fetch analytics
+  const fetchCourseAnalytics = useCallback(async () => {
+    // Move the courses fetch outside of the conditional to maintain hook order
+    if (!dataLoaded.courses) {
+      await fetchInstructorCourses();
+      // If we just loaded the courses, we'll continue with analytics
+    } else if (dataLoaded.analytics) {
+      // Skip if analytics already loaded
+      return;
+    }
+
+    setAllStatsLoaded(true); // Prevent duplicate calls
+
+    // Start loading for all courses
+    const loadingState = {};
+    userCourses.forEach((course) => {
+      loadingState[course._id] = true;
+    });
+    setStatsLoading(loadingState);
+
+    // Fetch stats for each course
+    for (const course of userCourses) {
+      await fetchCourseStats(course._id);
+    }
+
+    setDataLoaded((prev) => ({ ...prev, analytics: true }));
+  }, [userCourses, dataLoaded, fetchInstructorCourses, fetchCourseStats]);
 
   const handleEditProfile = (updatedData) => {
     setUserData((prev) => ({ ...prev, ...updatedData }));
   };
 
-  // Use useEffect hooks after all states and functions are defined
+  // Reset data loaded state after profile update or other major changes
+  const resetDataLoadedState = useCallback(() => {
+    setDataLoaded({
+      courses: false,
+      reviews: false,
+      analytics: false,
+    });
+    setAllStatsLoaded(false);
+  }, []);
+
+  // UPDATED: Combined initial data loading effect
   useEffect(() => {
-    if (token) {
-      fetchUserData();
+    async function loadInitialData() {
+      if (token) {
+        try {
+          setLoading(true);
+          // Fetch user data first
+          const response = await axios.get(
+            `${import.meta.env.VITE_API_URL}/api/auth/getuser`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+          const user = response.data.user;
+          setUserData(user);
+
+          // If user is an instructor, immediately load their courses
+          if (user?.role === "instructor") {
+            console.log("User is instructor, loading courses immediately");
+            setLoadingCourses(true);
+            try {
+              const coursesResponse = await axios.get(
+                `${import.meta.env.VITE_API_URL}/api/courses/instructor-courses`,
+                {
+                  headers: { Authorization: `Bearer ${token}` },
+                }
+              );
+              setUserCourses(coursesResponse.data || []);
+              setDataLoaded((prev) => ({ ...prev, courses: true }));
+              console.log(
+                "Initial courses loaded:",
+                coursesResponse.data?.length
+              );
+            } catch (courseError) {
+              console.error("Error fetching initial courses:", courseError);
+              setUserCourses([]);
+            } finally {
+              setLoadingCourses(false);
+            }
+          }
+        } catch (err) {
+          setError("Failed to fetch user data");
+          toast({
+            title: "Error",
+            description: "Failed to load profile data",
+            status: "error",
+            duration: 5000,
+            isClosable: true,
+          });
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setError("Authentication token not found");
+        setLoading(false);
+      }
+    }
+
+    loadInitialData();
+  }, [token, toast]);
+
+  // Handler for tab changes in InstructorView or StudentView
+  const handleTabChange = useCallback(
+    (tabIndex) => {
+      if (userData?.role === "instructor") {
+        // For instructor role
+        switch (tabIndex) {
+          case 0: // My Courses tab
+            fetchInstructorCourses();
+            break;
+          case 1: // My Reviews tab
+            fetchUserReviews();
+            break;
+          case 2: // Analytics tab
+            fetchCourseAnalytics();
+            break;
+          default:
+            break;
+        }
+      } else {
+        // For student role - typically just reviews
+        if (tabIndex === 0) {
+          fetchUserReviews();
+        }
+      }
+    },
+    [userData, fetchInstructorCourses, fetchUserReviews, fetchCourseAnalytics]
+  );
+
+  // Refresh all data
+  const refreshData = useCallback(() => {
+    resetDataLoadedState();
+    if (userData?.role === "instructor") {
+      fetchInstructorCourses(true); // Force reload
+      fetchUserReviews();
+      fetchCourseAnalytics();
     } else {
-      setError("Authentication token not found");
-      setLoading(false);
+      fetchUserReviews();
     }
-  }, [token]); // Remove toast dependency to prevent re-renders
+  }, [
+    userData,
+    fetchInstructorCourses,
+    fetchUserReviews,
+    fetchCourseAnalytics,
+    resetDataLoadedState,
+  ]);
 
-  // Separate effect to fetch user content once user data is available
-  useEffect(() => {
-    if (userData && token) {
-      fetchUserContent();
-    }
-  }, [userData, token]); // Remove dependencies that could change between renders
+  // Calculate loading state for analytics
+  const isLoadingAnalytics = Object.keys(statsLoading).some(
+    (id) => statsLoading[id]
+  );
 
-  if (loading) {
+  if (loading && !userData) {
     return (
       <Container maxW="container.lg" py={10}>
         <VStack spacing={8}>
@@ -235,7 +361,7 @@ const Profile = () => {
     );
   }
 
-  if (error) {
+  if (error && !userData) {
     return (
       <Container maxW="container.lg" py={10}>
         <Box textAlign="center" py={10} px={6}>
@@ -264,13 +390,7 @@ const Profile = () => {
       />
 
       {/* Account Details Section */}
-      <Box
-        bg={useColorModeValue("white", "gray.700")}
-        boxShadow="xl"
-        rounded="lg"
-        p={6}
-        mb={8}
-      >
+      <Box bg={bgColor} boxShadow="xl" rounded="lg" p={6} mb={8}>
         <AccountDetails userData={userData} />
       </Box>
 
@@ -280,15 +400,24 @@ const Profile = () => {
           <InstructorView
             userCourses={userCourses}
             userReviews={userReviews}
-            courseAnalytics={courseAnalytics}
-            loading={loadingCourses}
-            fetchUserContent={fetchUserContent}
+            loading={{
+              courses: loadingCourses,
+              reviews: loadingReviews,
+              analytics: isLoadingAnalytics,
+            }}
+            onTabChange={handleTabChange}
+            fetchUserContent={refreshData}
+            // New props for passing course stats
+            courseStats={courseStats}
+            statsLoading={statsLoading}
+            allStatsLoaded={allStatsLoaded}
           />
         ) : (
           <StudentView
             userReviews={userReviews}
-            loading={loadingCourses}
-            fetchUserContent={fetchUserContent}
+            loading={loadingReviews}
+            onTabChange={handleTabChange}
+            fetchUserContent={refreshData}
           />
         )}
       </Box>
