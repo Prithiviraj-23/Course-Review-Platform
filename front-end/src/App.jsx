@@ -11,6 +11,7 @@ import Profile from "./Pages/Profile";
 function App() {
   const { token } = useSelector((state) => state.auth);
   console.log("App is rendering");
+  console.log("URl", import.meta.env.VITE_API_URL);
   return (
     <Routes>
       <Route
