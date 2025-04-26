@@ -6,7 +6,9 @@ services:
     ports:
       - "5000:5000"
     environment:
-      - NODE_ENV=development
+      - MONGO_URI=${MONGO_URI}
+      - JWT_SECRET=${JWT_SECRET}
+
     volumes:
       - ./backend:/app
     networks:
@@ -17,7 +19,7 @@ services:
     ports:
       - "3000:80" # Frontend will be accessible on port 3000 on the host
     environment:
-      - NODE_ENV=development
+      - FRONTEND_URL=${VITE_API_HOST}
     volumes:
       - ./frontend:/app
     networks:
